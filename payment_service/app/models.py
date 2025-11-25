@@ -1,14 +1,15 @@
 from pydantic import BaseModel, Field
+from uuid import UUID
 
 class PaymentRequest(BaseModel):
     """Represents the request body for a debit payment.
 
     Attributes:
         user_id: The unique identifier for the user.
-        amount: The positive integer amount to be debited.
+        item_id: The unique identifier for the item being purchased.
     """
-    user_id: str
-    amount: int = Field(..., gt=0, description="Amount to debit")
+    user_id: int
+    item_id: UUID = Field(..., description="The unique identifier for the item being purchased")
 
 class PaymentResponse(BaseModel):
     """Represents the successful response for a debit payment.
@@ -17,5 +18,5 @@ class PaymentResponse(BaseModel):
         user_id: The unique identifier for the user.
         new_balance: The user's balance after the debit was applied.
     """
-    user_id: str
+    user_id: int
     new_balance: int

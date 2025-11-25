@@ -4,8 +4,7 @@ from app.routes import router
 from contextlib import asynccontextmanager
 import logging
 from app.logging_config import setup_logging
-from app.database import supabase_client
-
+from app.database import get_supabase_client
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -16,7 +15,8 @@ async def lifespan(app: FastAPI):
     Lifespan context manager to handle startup and shutdown events.
     """
     try:
-        supabase_client.table("payments").select("id").limit(1).execute()
+        supabase_client = get_supabase_client()
+        supabase_client.table("Users").select("card_id").limit(1).execute()
         logger.info("✓ Supabase connection established successfully")
     except Exception as e:
         logger.error(f"✗ Supabase connection failed: {e}")

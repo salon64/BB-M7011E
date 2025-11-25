@@ -22,8 +22,7 @@ async def debit_payment(
     function in the database.
 
     Args:
-        request: A `PaymentRequest` object containing the user's ID and the
-            amount to be debited.
+        request: A `PaymentRequest` object containing the user's ID and the item ID.
         supabase: An injected Supabase client for database communication.
 
     Returns:
@@ -33,13 +32,12 @@ async def debit_payment(
     try:
         result = supabase.rpc('debit_user', {
             'user_id_input': request.user_id,
-            'amount_input': request.amount,
-            'correlation_id_input': str(uuid.uuid4())
+            'item_input': str(request.item_id),
         }).execute()
 
         return PaymentResponse(
             user_id=request.user_id,
-            new_balance=result.data
+            new_balance=int(result.data)
         )
 
     except APIError as e:
