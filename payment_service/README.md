@@ -21,7 +21,7 @@ The primary purpose of this service is to expose an API for processing payments.
 
 *   Python 3.11
 *   Docker
-*   A Supabase project with the required database functions and tables.
+*   A Supabase project (see **Database setup** for structure)
 
 ### Configuration
 
@@ -32,6 +32,68 @@ SUPABASE_URL="your_supabase_project_url"
 SUPABASE_KEY="your_supabase_service_role_key"
 PRODUCTS_SERVICE_URL="http://localhost:8001"
 ```
+
+### Database setup
+
+1. **Supabase RPC function:**
+This will walk you through creating the database function that deducts balance from a user as part of a transaction and logs the transaction in the approriate table.
+
+    - Navigate to _Database > Functions_ within your supabase project
+    - Press "Create a new function"
+    - **Function:**
+        - Name: `debit_use`
+        - Schema: public
+        - Args: [user_id_input: text], [amount_input: integer], [correlation_id_input: uuid]
+        - Definition:
+            ```plpgsql
+            DECLARE
+            current_balance INT;
+            user_active INT;
+            new_balance INT;
+            BEGIN
+            -- Find and Lock the User to prevent all race conditions.
+
+            SELECT
+                balance,
+                active
+            INTO
+                current_balance,
+                user_active
+            FROM "User"
+            WHERE id = user_id_input
+            FOR UPDATE;
+
+            -- Run Payment Logic Checks
+            IF NOT FOUND THEN
+                RAISE EXCEPTION 'User not found';
+            END IF;
+
+            IF user_active = 0 THEN
+                RAISE EXCEPTION 'User is not active';
+            END IF;
+
+            IF current_balance < amount_input THEN
+                RAISE EXCEPTION 'Insufficient funds. Has: %, Needs: %', current_balance, amount_input;
+            END IF;
+
+            -- Create the Ledger Record
+            INSERT INTO "Transactions"
+                (user_id, amount_delta, type, correlation_id)
+            VALUES
+                (user_id_input, -amount_input, 'PURCHASE', correlation_id_input);
+
+            -- Update the User's Balance
+            UPDATE "User"
+            SET balance = current_balance - amount_input
+            WHERE id = user_id_input
+            RETURNING balance INTO new_balance;
+            
+            -- Return the Result
+            RETURN new_balance;
+            END`
+            ```
+2. **Tables:**
+For this information adhere to the README.md present in the database directory of the project.
 
 ### Running with Docker
 
