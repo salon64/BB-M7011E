@@ -12,6 +12,7 @@ The primary purpose of this service is to expose an API for processing payments.
 *   **Language**: Python 3.11
 *   **Database**: Supabase (PostgreSQL)
 *   **Containerization**: Docker
+*   **Testing**: Pytest
 
 ---
 
@@ -118,7 +119,12 @@ For this information adhere to the README.md present in the database directory o
 
 ---
 
-### Testing the service locally in the web browser
+### Testing endpoints and error handling
+
+1. Run the following command `pytest tests/test_service.py -v` to run the test suite
+2. If all goes well, all tests should pass.
+
+### Using the service locally in the web browser
 
 1. Go to the following web adress: http://localhost:8002/docs#/default/debit_payment_payments_debit_post
 
