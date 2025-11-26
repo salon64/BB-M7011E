@@ -105,6 +105,8 @@ This will walk you through creating the database function that deducts balance f
 2. **Tables:**
 For this information adhere to the README.md present in the database directory of the project.
 
+---
+
 ### Running with Docker
 
 1.  **Build the Docker image:**
@@ -119,14 +121,36 @@ For this information adhere to the README.md present in the database directory o
 
 ---
 
+### Running Kubernetes k8s
+
+1. Build the docker image with the appropriate sys architecture and Push the image to the specified Docker Hub account:
+    ```bash
+    docker buildx build --platform linux/amd64,linux/arm64 -t justingav/payment-service:latest --push 
+    ```
+2. Navigate to the k8s directory and run the following command to reload the deployment file:
+    ```bash
+    kubectl apply -f deployment.yaml
+    ```
+3. You can now view it at: ```http://localhost:8002```
+4. Clean up afterwards: 
+    ```bash
+    kubectl delete -f deployment.yaml && kubectl apply -f deployment.yaml
+    ```
+
+---
+
 ### Testing endpoints and error handling
 
 1. Run the following command `pytest tests/test_service.py -v` to run the test suite
 2. If all goes well, all tests should pass.
 
+---
+
 ### Using the service locally in the web browser
 
 1. Go to the following web adress: http://localhost:8002/docs#/default/debit_payment_payments_debit_post
+
+---
 
 ## Troubleshooting Guide
 
