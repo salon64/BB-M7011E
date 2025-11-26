@@ -171,3 +171,11 @@ This guide is based on common issues encountered during the development of this 
 
 *   **Cause**: The Supabase client creation is done before any environment variables have been properly loaded.
 *   **Solution**: In the database file, check if the Supabase client is none. If the client object is none, create it adding the urls from the `.env` file. Make the reading of the `.env` file case insensitive. Make sure the path to the env file is properly copied in the Dockerfile.
+
+### 4. Error: Kubernetes pod: no match for platform in manifest: not found
+
+*   **Cause**: The message "no match for platform in manifest: not found" means the Docker image was built for a different CPU architecture than the node it's trying to run on.
+*   **Solution**: Rebuild and push the Docker image to include manifests for both architectures using the command:
+```bash
+docker buildx build --platform linux/amd64,linux/arm64 -t <justingav/payment-service:latest> --push .
+```
