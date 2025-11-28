@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  product-service:
+    build: .
+    ports:
+      - "8003:8003"
+    env_file:
+      - .env
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - LOG_LEVEL=${LOG_LEVEL}
+      - PORT=${PORT}
+    networks:
+      - supabase_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+networks:
+  supabase_network:
+    external: true
+    name: supabase_default
