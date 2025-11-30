@@ -9,6 +9,7 @@ from app.database import get_supabase_client
 setup_logging()
 logger = logging.getLogger(__name__)
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -23,20 +24,17 @@ async def lifespan(app: FastAPI):
     yield
     logger.info("Shutting down payment service.")
 
+
 app = FastAPI(
     title="Payment Service",
     version="1.0.0",
     description="Handles all payment transactions for Bättre Bosh",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 app.include_router(router)
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        'main:app', 
-        host=settings.host,
-        port=settings.service_port,
-        reload=True
-    )
+
+    uvicorn.run("main:app", host=settings.host, port=settings.service_port, reload=True)
