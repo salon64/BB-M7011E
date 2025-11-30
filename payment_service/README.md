@@ -2,8 +2,8 @@
 
 This is a FastAPI-based microservice responsible for handling all payment transactions within the Bättre Bosh ecosystem. It provides a secure and robust endpoint for debiting user accounts.
 
-[![Coverage](https://codecov.io/gh/username/repo/branch/main/graph/badge.svg)](https://codecov.io/gh/username/repo)
-[![Tests](https://github.com/username/repo/workflows/CI%20Pipeline/badge.svg)](https://github.com/username/repo/actions)
+[![Coverage](https://codecov.io/gh/salon64/BB-M7011E/branch/main/graph/badge.svg)](https://codecov.io/gh/salon64/BB-M7011E)
+[![Tests](https://github.com/salon64/BB-M7011E/workflows/Payment%20Service%20CI/badge.svg)](https://github.com/salon64/BB-M7011E/actions)
 
 ## Overview
 
