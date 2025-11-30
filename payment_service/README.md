@@ -2,6 +2,9 @@
 
 This is a FastAPI-based microservice responsible for handling all payment transactions within the Bättre Bosh ecosystem. It provides a secure and robust endpoint for debiting user accounts.
 
+[![Coverage](https://codecov.io/gh/username/repo/branch/main/graph/badge.svg)](https://codecov.io/gh/username/repo)
+[![Tests](https://github.com/username/repo/workflows/CI%20Pipeline/badge.svg)](https://github.com/username/repo/actions)
+
 ## Overview
 
 The primary purpose of this service is to expose an API for processing payments. It communicates with a Supabase (PostgreSQL) database via an RPC (Remote Procedure Call) function to ensure that transactions are atomic and that business logic is handled securely at the database level.
@@ -143,6 +146,18 @@ For this information adhere to the README.md present in the database directory o
 
 1. Run the following command `pytest tests/test_service.py -v` to run the test suite
 2. If all goes well, all tests should pass.
+
+**If you want to run tests and see the coverage report for these tests**
+
+1. Run the following commands:
+    ```bash
+    cd payment_service
+    pytest tests/ --cov=app --cov-report=html --cov-report=term
+    ```
+    or for a more detailed reporting,
+    ```bash
+    pytest tests/ --cov=app --cov=main --cov-report=html --cov-report=term-missing
+    ```
 
 ---
 
