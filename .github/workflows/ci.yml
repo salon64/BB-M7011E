@@ -9,7 +9,6 @@ on:
 
 permissions:
   contents: read
-  security-events: write
 
 jobs:
   backend-tests:
@@ -95,14 +94,10 @@ jobs:
         with:
           scan-type: 'fs'
           scan-ref: './payment_service'
-          format: 'sarif'
-          output: 'trivy-fs-results.sarif'
-
-      - name: Upload Trivy FS scan results
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        with:
-          sarif_file: 'trivy-fs-results.sarif'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
 
   docker-security:
     name: Docker Image Security
@@ -121,11 +116,7 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: 'payment-service:test'
-          format: 'sarif'
-          output: 'trivy-image-results.sarif'
-
-      - name: Upload Trivy Image scan results
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        with:
-          sarif_file: 'trivy-image-results.sarif'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
