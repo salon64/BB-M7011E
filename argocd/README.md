@@ -92,6 +92,22 @@ argocd app create payment-service-prod \
   --sync-policy manual  # Keep manual for production!
 ```
 
+* **Scale down deployments**
+
+```bash
+kubectl scale deployment payment-service-dev --replicas=0 -n payment-service-dev
+kubectl scale deployment payment-service-staging --replicas=0 -n payment-service-staging  
+kubectl scale deployment payment-service-prod --replicas=0 -n payment-service-prod
+```
+
+* **Scale back up deployments**
+
+```bash
+kubectl scale deployment payment-service-dev --replicas=3 -n payment-service-dev
+kubectl scale deployment payment-service-staging --replicas=2 -n payment-service-staging  
+kubectl scale deployment payment-service-prod --replicas=3 -n payment-service-prod
+```
+
 ## 🔧 Configuration
 
 Update `values.yaml` with specific settings:
