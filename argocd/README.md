@@ -100,6 +100,8 @@ kubectl scale deployment payment-service-staging --replicas=0 -n payment-service
 kubectl scale deployment payment-service-prod --replicas=0 -n payment-service-prod
 ```
 
+Note: if the apps have automatic sync, they'll scale back up. You'll have to change the policy for them to scale down properly.
+
 * **Scale back up deployments**
 
 ```bash
