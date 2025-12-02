@@ -2,7 +2,7 @@ name: Deploy to Kubernetes
 
 on:
   push:
-    branches: [main,feat/payment-service] # feat/payment-service TEMPORARY: for testing
+    branches: [main] # feat/payment-service TEMPORARY: for testing
   workflow_dispatch:  # Allows manual deployment
     
 
@@ -15,7 +15,7 @@ jobs:
     name: Deploy Payment Service
     runs-on: ubuntu-latest
     needs: test 
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/payment-service'
+    if: github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout code

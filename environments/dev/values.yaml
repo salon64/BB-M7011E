@@ -2,7 +2,7 @@
 
 app:
   name: payment-service-dev
-  replicas: 1
+  replicas: 3
   image: justingav/payment-service
   tag: latest
 
