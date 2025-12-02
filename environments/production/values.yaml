@@ -1,0 +1,23 @@
+# Production Environment Configuration
+
+app:
+  name: payment-service-prod
+  replicas: 3
+  image: justingav/payment-service
+  tag: ${{ github.sha }}
+
+# Production domain
+domain: payment-service-prod.ltu-m7011e-10.se
+
+# Email for Let's Encrypt certificates
+email: jusgav-1@student.ltu.se
+
+# Environment identifier
+environment: Production
+
+message: "Hello from Production Environment - Live Site"
+
+# Ingress configuration
+ingress:
+  enabled: true
+  certIssuer: letsencrypt-prod

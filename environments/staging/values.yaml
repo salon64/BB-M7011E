@@ -1,0 +1,22 @@
+# Staging Environment Configuration
+
+app:
+  name: payment-service-staging
+  replicas: 2
+  image: justingav/payment-service
+  tag: latest
+
+# Staging domain - change to your assigned domain
+domain: payment-service-staging.ltu-m7011e-10.se
+# Email for Let's Encrypt certificates
+email: jusgav-1@student.ltu.se
+
+# Environment identifier
+environment: Staging
+
+message: "Hello from Staging Environment - Pre-Production Testing"
+
+# Ingress configuration
+ingress:
+  enabled: true
+  certIssuer: letsencrypt-staging

@@ -1,0 +1,22 @@
+# Development Environment Configuration
+
+app:
+  name: payment-service-dev
+  replicas: 1
+  image: justingav/payment-service
+  tag: latest
+
+# Development domain
+domain: payment-service-dev.ltu-m7011e-10.se
+# Email for Let's Encrypt certificates
+email: jusgav-1@student.ltu.se
+
+# Environment identifier
+environment: Development
+
+message: "Hello from Development Environment!"
+
+# Ingress configuration
+ingress:
+  enabled: true
+  certIssuer: letsencrypt-staging
