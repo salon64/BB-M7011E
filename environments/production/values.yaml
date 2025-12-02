@@ -4,7 +4,7 @@ app:
   name: payment-service-prod
   replicas: 3
   image: justingav/payment-service
-  tag: 1.1.0
+  tag: latest
 
 # Production domain
 domain: payment-service-prod.ltu-m7011e-10.se
