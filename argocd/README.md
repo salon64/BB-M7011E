@@ -24,7 +24,7 @@ This directory contains the Helm chart for installing ArgoCD in the LTU M7011E c
 
 ## ArgoCD creating the application
 
-* **Create app** use the following command to create the app within argocd. This is done manually since I couldn't get it to work through the UI(it wouldn't recognize it as a helm). Command for creating app(for dev):
+* **Deploy dev app** use the following command to create the app within argocd. This is done manually since I couldn't get it to work through the UI(it wouldn't recognize it as a helm). Command for creating app(for dev):
 
 ```bash
 argocd app create payment-service-dev \
@@ -34,19 +34,62 @@ argocd app create payment-service-dev \
   --dest-server https://kubernetes.default.svc \
   --dest-namespace payment-service-dev \
   --values ../../environments/dev/values.yaml \
-  --sync-policy manual
+  --sync-policy automated \
+  --auto-prune \
+  --self-heal
 ```
 
-creating the namespace:
+Creating the namespace:
 
 ```bash
 kubectl create namespace payment-service-dev
 ```
 
-syncing the namespace:
+Create secrets for the supabase keys from the .env file
+
+```bash
+kubectl create secret generic payment-service-secrets \
+  --from-env-file=/Users/justin/Documents/1-Projekt/M7011E/BB-M7011E/payment_service/.env \
+  -n payment-service-dev
+```
+To delete secrets:
+
+```bash
+kubectl delete secret payment-service-secrets -n payment-service-dev
+```
+
+Syncing the namespace:
 
 ```bash
 argocd app sync payment-service-dev
+```
+
+* **Deploy staging app**
+
+```bash
+argocd app create payment-service-staging \
+  --repo https://github.com/salon64/BB-M7011E.git \
+  --revision feat/payment-service \
+  --path payment_service/k8s \
+  --dest-server https://kubernetes.default.svc \
+  --dest-namespace payment-service-staging \
+  --values ../../environments/staging/values.yaml \
+  --sync-policy automated \
+  --auto-prune \
+  --self-heal
+```
+
+* **Deploy production app**
+
+```bash
+argocd app create payment-service-prod \
+  --repo https://github.com/salon64/BB-M7011E.git \
+  --revision feat/payment-service \
+  --path payment_service/k8s \
+  --dest-server https://kubernetes.default.svc \
+  --dest-namespace payment-service-prod \
+  --values ../../environments/production/values.yaml \
+  --sync-policy manual  # Keep manual for production!
 ```
 
 ## 🔧 Configuration
