@@ -6,8 +6,16 @@ on:
 
 jobs:
   test-coverage:
-    name: Test Coverage Check
+    name: Test Coverage Check - ${{ matrix.service }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [payment_service, item_service]
+        include:
+          - service: payment_service
+            coverage_targets: "app,main"
+          - service: item_service
+            coverage_targets: "app"
 
     steps:
       - name: Checkout code
@@ -20,13 +28,13 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd payment_service
+          cd ${{ matrix.service }}
           pip install -r requirements.txt
 
       - name: Run tests with coverage
         run: |
-          cd payment_service
-          pytest tests/ --cov=app --cov=main --cov-report=term-missing --cov-fail-under=80
+          cd ${{ matrix.service }}
+          pytest tests/ --cov=${{ matrix.coverage_targets }} --cov-report=term-missing --cov-fail-under=80
 
       - name: Comment PR with coverage
         uses: py-cov-action/python-coverage-comment-action@v3
@@ -36,12 +44,13 @@ jobs:
           MINIMUM_ORANGE: 60
 
   test-multiple-python-versions:
-    name: Test on Python ${{ matrix.python-version }}
+    name: Test ${{ matrix.service }} on Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
         python-version: ['3.10', '3.11', '3.12']
+        service: [payment_service, item_service]
 
     steps:
       - name: Checkout code
@@ -54,12 +63,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd payment_service
+          cd ${{ matrix.service }}
           pip install -r requirements.txt
 
       - name: Run tests
         run: |
-          cd payment_service
+          cd ${{ matrix.service }}
           pytest tests/ -v
 
   prevent-merge-if-failing:

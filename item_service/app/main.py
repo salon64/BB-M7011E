@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field, validator
 from typing import Optional
-from supabase import create_client, Client
+from .database import get_supabase_client
 from prometheus_client import Counter, Histogram, generate_latest, CollectorRegistry, CONTENT_TYPE_LATEST
 import logging
 import time
@@ -40,11 +40,6 @@ db_operation_duration = Histogram(
     ['operation'],
     registry=registry
 )
-
-# Supabase client
-supabase_url = os.getenv("SUPABASE_URL", "")
-supabase_key = os.getenv("SUPABASE_KEY", "")
-supabase: Client = create_client(supabase_url, supabase_key)
 
 # Pydantic models
 class ItemCreate(BaseModel):
@@ -122,7 +117,7 @@ async def health_check():
 async def readiness_check():
     """Readiness check endpoint - verifies database connection"""
     try:
-        response = supabase.table("Items").select("id").limit(1).execute()
+        response = get_supabase_client().table("Items").select("id").limit(1).execute()
         return {
             "status": "ready",
             "timestamp": time.time()
@@ -150,7 +145,7 @@ async def create_item(item: ItemCreate):
             "active": True
         }
         
-        response = supabase.table("Items").insert(item_data).execute()
+        response = get_supabase_client().table("Items").insert(item_data).execute()
         
         if not response.data:
             logger.error("Failed to create item: No data returned")
@@ -175,7 +170,7 @@ async def get_items(active: Optional[bool] = Query(None, description="Filter by 
     """Get all items, optionally filtered by active status"""
     start_time = time.time()
     try:
-        query = supabase.table("Items").select("*")
+        query = get_supabase_client().table("Items").select("*")
         
         if active is not None:
             query = query.eq("active", active)
@@ -196,7 +191,7 @@ async def get_item(item_id: str):
     """Get a specific item by ID"""
     start_time = time.time()
     try:
-        response = supabase.table("Items").select("*").eq("id", item_id).execute()
+        response = get_supabase_client().table("Items").select("*").eq("id", item_id).execute()
         
         if not response.data:
             raise HTTPException(status_code=404, detail="Item not found")
@@ -218,7 +213,7 @@ async def update_item(item_id: str, item_update: ItemUpdate):
     start_time = time.time()
     try:
         # Check if item exists
-        check_response = supabase.table("Items").select("id").eq("id", item_id).execute()
+        check_response = get_supabase_client().table("Items").select("id").eq("id", item_id).execute()
         if not check_response.data:
             raise HTTPException(status_code=404, detail="Item not found")
         
@@ -228,7 +223,7 @@ async def update_item(item_id: str, item_update: ItemUpdate):
         if not update_data:
             raise HTTPException(status_code=400, detail="No fields to update")
         
-        response = supabase.table("Items").update(update_data).eq("id", item_id).execute()
+        response = get_supabase_client().table("Items").update(update_data).eq("id", item_id).execute()
         
         if not response.data:
             logger.error(f"Failed to update item {item_id}")
@@ -252,17 +247,17 @@ async def delete_item(item_id: str, hard_delete: bool = Query(False, description
     start_time = time.time()
     try:
         # Check if item exists
-        check_response = supabase.table("Items").select("id").eq("id", item_id).execute()
+        check_response = get_supabase_client().table("Items").select("id").eq("id", item_id).execute()
         if not check_response.data:
             raise HTTPException(status_code=404, detail="Item not found")
         
         if hard_delete:
             # Hard delete
-            response = supabase.table("Items").delete().eq("id", item_id).execute()
+            response = get_supabase_client().table("Items").delete().eq("id", item_id).execute()
             logger.info(f"Item permanently deleted: {item_id}")
         else:
             # Soft delete
-            response = supabase.table("Items").update({"active": False}).eq("id", item_id).execute()
+            response = get_supabase_client().table("Items").update({"active": False}).eq("id", item_id).execute()
             logger.info(f"Item soft deleted: {item_id}")
         
         return None

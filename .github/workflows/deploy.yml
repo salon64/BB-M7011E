@@ -12,10 +12,20 @@ jobs:
     uses: ./.github/workflows/ci.yml
 
   deploy:
-    name: Deploy Payment Service
+    name: Deploy ${{ matrix.service_name }}
     runs-on: ubuntu-latest
     needs: test 
     if: github.ref == 'refs/heads/main'
+    strategy:
+      matrix:
+        service: [payment_service, item_service]
+        include:
+          - service: payment_service
+            service_name: "Payment Service"
+            docker_image: "justingav/payment-service"
+          - service: item_service
+            service_name: "Item Service"
+            docker_image: "justingav/item-service"
 
     steps:
       - name: Checkout code
@@ -33,15 +43,15 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./payment_service
+          context: ./${{ matrix.service }}
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            justingav/payment-service:latest
-            justingav/payment-service:${{ github.sha }}
+            ${{ matrix.docker_image }}:latest
+            ${{ matrix.docker_image }}:${{ github.sha }}
 
       - name: Update image tag for GitOps
         run: |
-          echo "🚀 Image built and pushed: justingav/payment-service:${{ github.sha }}"
+          echo "🚀 Image built and pushed: ${{ matrix.docker_image }}:${{ github.sha }}"
           echo "📝 ArgoCD will detect this new image and deploy automatically"
           echo "🔄 ArgoCD continuously monitors git and syncs with cluster"
