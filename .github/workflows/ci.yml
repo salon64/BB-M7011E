@@ -87,15 +87,20 @@ jobs:
         run: |
           pip install flake8 black
 
+      - name: Auto-format with Black
+        run: |
+          cd ${{ matrix.service }}
+          black . --line-length=100
+
       - name: Run flake8
         run: |
           cd ${{ matrix.service }}
           flake8 . --max-line-length=100 --exclude=venv,__pycache__
 
-      - name: Run black check
+      - name: Check Black formatting
         run: |
           cd ${{ matrix.service }}
-          black --check .
+          black --check --diff . --line-length=100
 
   security-scan:
     name: Security Scan - ${{ matrix.service }}
@@ -109,6 +114,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Trivy vulnerability scanner (filesystem)
+        timeout-minutes: 10
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
@@ -140,6 +146,7 @@ jobs:
           docker build -t ${{ matrix.image_name }}:test .
 
       - name: Run Trivy vulnerability scanner (image)
+        timeout-minutes: 10
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: '${{ matrix.image_name }}:test'
