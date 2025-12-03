@@ -20,3 +20,16 @@ message: "Hello from Development Environment!"
 ingress:
   enabled: true
   certIssuer: letsencrypt-staging
+
+
+# Item Service Configuration
+itemService:
+  name: item-service-dev
+  replicas: 1
+  image: justingav/item-service
+  tag: latest
+  
+  # Item service domain  
+  domain: item-service-dev.ltu-m7011e-10.se
+  
+  message: "Hello from Item Service - Development!"

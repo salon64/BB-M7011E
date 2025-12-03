@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.itemService.name }}-html
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>{{ .Values.message }}</title>
+    </head>
+    <body>
+        <h1>{{ .Values.message }}</h1>
+        <p>Frontend placeholder - ready for deployment</p>
+    </body>
+    </html>
