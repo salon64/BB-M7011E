@@ -1,30 +1,22 @@
-from pydantic_settings import BaseSettings
+import os
 
 
-class Settings(BaseSettings):
-    """Configuration loaded from .env file"""
+class Settings:
+    """Configuration loaded from environment variables"""
 
-    # Supabase
-    supabase_url: str
-    supabase_key: str
+    def __init__(self):
+        # Supabase
+        self.supabase_url = os.getenv("SUPABASE_URL", "https://test.supabase.co")
+        self.supabase_key = os.getenv("SUPABASE_KEY", "test-key")
 
-    # Redis
-    # redis_url: str
+        # Other services
+        self.products_service_url = os.getenv("PRODUCTS_SERVICE_URL", "http://localhost:8001")
 
-    # Other services
-    products_service_url: str
-    # auth_service_url: str
-
-    # Service settings
-    service_name: str = "payments-service"
-    host: str = "0.0.0.0"
-    service_port: int = 8002
-    log_level: str = "INFO"
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
+        # Service settings
+        self.service_name = "payments-service"
+        self.host = "0.0.0.0"
+        self.service_port = 8002
+        self.log_level = os.getenv("LOG_LEVEL", "INFO")
 
 
 # Create single settings instance
