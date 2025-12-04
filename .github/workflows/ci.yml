@@ -44,7 +44,6 @@ jobs:
             ${{ runner.os }}-pip-
 
       - name: Install dependencies
-        timeout-minutes: 10
         run: |
           cd ${{ matrix.service }}
           pip install --upgrade pip
@@ -114,7 +113,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Trivy vulnerability scanner (filesystem)
-        timeout-minutes: 10
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
@@ -146,7 +144,6 @@ jobs:
           docker build -t ${{ matrix.image_name }}:test .
 
       - name: Run Trivy vulnerability scanner (image)
-        timeout-minutes: 10
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: '${{ matrix.image_name }}:test'

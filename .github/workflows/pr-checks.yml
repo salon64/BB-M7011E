@@ -27,7 +27,6 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        timeout-minutes: 10
         run: |
           cd ${{ matrix.service }}
           pip install --upgrade pip
@@ -64,7 +63,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        timeout-minutes: 10
         run: |
           cd ${{ matrix.service }}
           pip install --upgrade pip
