@@ -21,9 +21,6 @@ COPY --from=builder /opt/venv /opt/venv
 # Copy application code
 COPY . .
 
-# Copy .env file
-COPY .env .env
-
 # Activate the virtual environment
 ENV PATH="/opt/venv/bin:$PATH"
 
