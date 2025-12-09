@@ -1,0 +1,39 @@
+# Argo CD Configuration for LTU M7011E
+
+argocd:
+  domain: argocd.ltu-m7011e-10.se
+  email: jusgav-1@student.ltu.se
+
+# Argo CD version
+image:
+  repository: quay.io/argoproj/argocd
+  tag: v2.13.2
+
+# Resource limits
+resources:
+  server:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  repoServer:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  applicationController:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+# Enable ingress for web UI
+ingress:
+  enabled: true
+  certIssuer: letsencrypt-staging

@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.app.name }}
+spec:
+  replicas: {{ .Values.app.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.app.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.app.name }}
+    spec:
+      containers:
+      - name: payment-service
+        image: {{ .Values.app.image }}:{{ .Values.app.tag }}
+        ports:
+        - containerPort: 8002
+        env:
+        - name: SUPABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: payment-service-secrets
+              key: SUPABASE_URL
+        - name: SUPABASE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: payment-service-secrets
+              key: SUPABASE_KEY
+        - name: PRODUCTS_SERVICE_URL
+          value: "http://products-service:8001"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8002
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8002
+          initialDelaySeconds: 5
+          periodSeconds: 5

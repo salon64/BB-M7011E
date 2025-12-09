@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.itemService.name }}
+spec:
+  replicas: {{ .Values.itemService.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.itemService.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.itemService.name }}
+    spec:
+      containers:
+      - name: item-service
+        image: {{ .Values.itemService.image }}:{{ .Values.itemService.tag }}
+        ports:
+        - containerPort: 8003
+        env:
+        - name: SUPABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: item-service-secrets
+              key: SUPABASE_URL
+        - name: SUPABASE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: item-service-secrets
+              key: SUPABASE_KEY
+        - name: PRODUCTS_SERVICE_URL
+          value: "http://products-service:8001"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8003
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8003
+          initialDelaySeconds: 5
+          periodSeconds: 5
