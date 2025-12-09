@@ -1,0 +1,153 @@
+name: Microservices CI
+
+on:
+  push:
+    branches: [main, feat/payment-service]
+  pull_request:
+    branches: [main]
+  workflow_call:  
+
+permissions:
+  contents: read
+
+jobs:
+  backend-tests:
+    name: ${{ matrix.service }} Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [payment_service, item_service]
+        include:
+          - service: payment_service
+            coverage_targets: "app,main"
+            service_name: "payment-service"
+          - service: item_service
+            coverage_targets: "app"
+            service_name: "item-service"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.service }}-${{ hashFiles(format('{0}/requirements.txt', matrix.service)) }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.service }}-
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          cd ${{ matrix.service }}
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run unit tests
+        run: |
+          cd ${{ matrix.service }}
+          pytest tests/ -v
+
+      - name: Run tests with coverage
+        run: |
+          cd ${{ matrix.service }}
+          pytest tests/ --cov=${{ matrix.coverage_targets }} --cov-report=xml --cov-report=term-missing
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./${{ matrix.service }}/coverage.xml
+          flags: backend
+          name: ${{ matrix.service_name }}-coverage
+
+  lint:
+    name: Code Linting - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [payment_service, item_service]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install linters
+        run: |
+          pip install flake8 black
+
+      - name: Auto-format with Black
+        run: |
+          cd ${{ matrix.service }}
+          black . --line-length=100
+
+      - name: Run flake8
+        run: |
+          cd ${{ matrix.service }}
+          flake8 . --max-line-length=100 --exclude=venv,__pycache__
+
+      - name: Check Black formatting
+        run: |
+          cd ${{ matrix.service }}
+          black --check --diff . --line-length=100
+
+  security-scan:
+    name: Security Scan - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [payment_service, item_service]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner (filesystem)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: './${{ matrix.service }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+
+  docker-security:
+    name: Docker Image Security - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [payment_service, item_service]
+        include:
+          - service: payment_service
+            image_name: "payment-service"
+          - service: item_service
+            image_name: "item-service"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          cd ${{ matrix.service }}
+          docker build -t ${{ matrix.image_name }}:test .
+
+      - name: Run Trivy vulnerability scanner (image)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ matrix.image_name }}:test'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
