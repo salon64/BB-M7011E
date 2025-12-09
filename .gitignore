@@ -1,2 +1,12 @@
+#vscode
 .vscode/
+
+# Python
+__pycache__/
+*.pyc
+
+# Database
 supabase-service/supabase/
+
+# Environment files
+.env
