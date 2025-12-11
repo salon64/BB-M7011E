@@ -4,18 +4,21 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 jobs:
   test-coverage:
     name: Test Coverage Check - ${{ matrix.service }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     strategy:
       matrix:
         service: [payment_service, item_service]
-        include:
-          - service: payment_service
-            coverage_targets: "app,main"
-          - service: item_service
-            coverage_targets: "app"
 
     steps:
       - name: Checkout code
@@ -35,14 +38,7 @@ jobs:
       - name: Run tests with coverage
         run: |
           cd ${{ matrix.service }}
-          pytest tests/ --cov=${{ matrix.coverage_targets }} --cov-report=term-missing --cov-fail-under=80
-
-      - name: Comment PR with coverage
-        uses: py-cov-action/python-coverage-comment-action@v3
-        with:
-          GITHUB_TOKEN: ${{ github.token }}
-          MINIMUM_GREEN: 80
-          MINIMUM_ORANGE: 60
+          pytest tests/ --cov=. --cov-report=term-missing --cov-fail-under=80
 
   test-multiple-python-versions:
     name: Test ${{ matrix.service }} on Python ${{ matrix.python-version }}
