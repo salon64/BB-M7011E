@@ -11,11 +11,6 @@ jobs:
     strategy:
       matrix:
         service: [payment_service, item_service]
-        include:
-          - service: payment_service
-            coverage_targets: "app,main"
-          - service: item_service
-            coverage_targets: "app"
 
     steps:
       - name: Checkout code
@@ -35,7 +30,7 @@ jobs:
       - name: Run tests with coverage
         run: |
           cd ${{ matrix.service }}
-          pytest tests/ --cov=${{ matrix.coverage_targets }} --cov-report=term-missing --cov-fail-under=80
+          pytest tests/ --cov=. --cov-report=term-missing --cov-fail-under=80
 
       - name: Comment PR with coverage
         uses: py-cov-action/python-coverage-comment-action@v3
