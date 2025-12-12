@@ -5,6 +5,19 @@ app:
   replicas: 3
   image: justingav/payment-service
   tag: latest
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPU: 70
+    targetMemory: 80
+  resources:
+    requests:
+      memory: "125Mi"
+      cpu: "50m"
+    limits:
+      memory: "250Mi"
+      cpu: "200m"
 
 # Production domain
 domain: payment-service-prod.ltu-m7011e-10.se
@@ -28,8 +41,21 @@ itemService:
   replicas: 3
   image: justingav/item-service
   tag: latest
-  
-  # Item service domain  
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPU: 70
+    targetMemory: 80
+  resources:
+    requests:
+      memory: "125Mi"
+      cpu: "50m"
+    limits:
+      memory: "250Mi"
+      cpu: "200m"
+
+  # Item service domain
   domain: item-service-prod.ltu-m7011e-10.se
-  
+
   message: "Hello from Item Service - Production!"

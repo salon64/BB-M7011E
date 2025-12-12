@@ -17,6 +17,13 @@ spec:
         image: {{ .Values.app.image }}:{{ .Values.app.tag }}
         ports:
         - containerPort: 8002
+        resources:
+          requests:
+            memory: {{ .Values.app.resources.requests.memory | default "60Mi" }}
+            cpu: {{ .Values.app.resources.requests.cpu | default "4m" }}
+          limits:
+            memory: {{ .Values.app.resources.limits.memory | default "120Mi" }}
+            cpu: {{ .Values.app.resources.limits.cpu | default "10m" }}
         env:
         - name: SUPABASE_URL
           valueFrom:
