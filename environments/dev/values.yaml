@@ -5,6 +5,19 @@ app:
   replicas: 1
   image: justingav/payment-service
   tag: latest
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPU: 70
+    targetMemory: 80
+  resources:
+    requests:
+      memory: "60Mi"
+      cpu: "4m"
+    limits:
+      memory: "120Mi"
+      cpu: "10m"
 
 # Development domain
 domain: payment-service-dev.ltu-m7011e-10.se
@@ -21,15 +34,27 @@ ingress:
   enabled: true
   certIssuer: letsencrypt-staging
 
-
 # Item Service Configuration
 itemService:
   name: item-service-dev
   replicas: 1
   image: justingav/item-service
   tag: latest
-  
-  # Item service domain  
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPU: 70
+    targetMemory: 80
+  resources:
+    requests:
+      memory: "60Mi"
+      cpu: "4m"
+    limits:
+      memory: "120Mi"
+      cpu: "10m"
+
+  # Item service domain
   domain: item-service-dev.ltu-m7011e-10.se
-  
+
   message: "Hello from Item Service - Development!"

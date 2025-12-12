@@ -140,6 +140,27 @@ For this information adhere to the README.md present in the database directory o
     ```bash
     kubectl delete -f deployment.yaml && kubectl apply -f deployment.yaml
     ```
+### HPA 
+
+Check HPA status:
+```bash
+# Check HPA across all namespaces
+kubectl get hpa --all-namespaces
+
+# Detailed HPA information
+kubectl describe hpa payment-service-dev-hpa -n payment-service-dev
+
+# Monitor real-time scaling
+kubectl get hpa -n payment-service-dev -w
+```
+Resource usage monitoring:
+```bash
+# Check current CPU/memory usage
+kubectl top pods -n payment-service-dev
+
+# View pod resource requests/limits
+kubectl describe deployment payment-service-dev -n payment-service-dev
+```
 
 ---
 
