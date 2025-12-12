@@ -13,11 +13,11 @@ app:
     targetMemory: 80
   resources:
     requests:
-      memory: "60Mi"
-      cpu: "4m"
+      memory: "256Mi"
+      cpu: "200m"
     limits:
-      memory: "120Mi"
-      cpu: "10m"
+      memory: "512Mi"
+      cpu: "500m"
 
 # Staging domain - change to your assigned domain
 domain: payment-service-staging.ltu-m7011e-10.se
@@ -48,11 +48,11 @@ itemService:
     targetMemory: 80
   resources:
     requests:
-      memory: "60Mi"
-      cpu: "4m"
+      memory: "256Mi"
+      cpu: "200m"
     limits:
-      memory: "120Mi"
-      cpu: "10m"
+      memory: "512Mi"
+      cpu: "500m"
 
   # Item service domain
   domain: item-service-staging.ltu-m7011e-10.se
