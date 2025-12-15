@@ -3,6 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import Mock, patch
 from app.main import app
+from app.auth import require_auth, require_admin
 
 client = TestClient(app)
 
@@ -14,6 +15,38 @@ def mock_supabase():
         mock_client = Mock()
         mock_func.return_value = mock_client
         yield mock_client
+
+
+# Mock authentication for user-level access
+@pytest.fixture
+def mock_auth_user():
+    def mock_user_dependency():
+        return {
+            "sub": "test-user-id",
+            "preferred_username": "testuser",
+            "email": "test@example.com", 
+            "realm_access": {"roles": ["user"]}
+        }
+    
+    app.dependency_overrides[require_auth] = mock_user_dependency
+    yield mock_user_dependency
+    app.dependency_overrides.clear()
+
+
+# Mock authentication for admin-level access
+@pytest.fixture
+def mock_auth_admin():
+    def mock_admin_dependency():
+        return {
+            "sub": "admin-user-id", 
+            "preferred_username": "admin",
+            "email": "admin@example.com",
+            "realm_access": {"roles": ["admin", "user"]}
+        }
+    
+    app.dependency_overrides[require_admin] = mock_admin_dependency
+    yield mock_admin_dependency
+    app.dependency_overrides.clear()
 
 
 class TestHealthEndpoints:
@@ -49,7 +82,7 @@ class TestHealthEndpoints:
 
 
 class TestCreateItem:
-    def test_create_item_success(self, mock_supabase):
+    def test_create_item_success(self, mock_supabase, mock_auth_admin):
         """Test successful item creation"""
         mock_response = Mock()
         mock_response.data = [
@@ -72,28 +105,28 @@ class TestCreateItem:
         assert response.json()["price"] == 1000
         assert response.json()["active"] is True
 
-    def test_create_item_missing_name(self):
+    def test_create_item_missing_name(self, mock_auth_admin):
         """Test item creation with missing name"""
         response = client.post("/items", json={"price": 1000})
         assert response.status_code == 422
 
-    def test_create_item_empty_name(self):
+    def test_create_item_empty_name(self, mock_auth_admin):
         """Test item creation with empty name"""
         response = client.post("/items", json={"name": "   ", "price": 1000})
         assert response.status_code == 422
 
-    def test_create_item_negative_price(self):
+    def test_create_item_negative_price(self, mock_auth_admin):
         """Test item creation with negative price"""
         response = client.post("/items", json={"name": "Test Product", "price": -100})
         assert response.status_code == 422
 
-    def test_create_item_without_barcode(self, mock_supabase):
+    def test_create_item_without_barcode(self, mock_supabase, mock_auth_admin):
         """Test item creation without barcode_id"""
         mock_response = Mock()
         mock_response.data = [
             {
                 "id": "123e4567-e89b-12d3-a456-426614174000",
-                "name": "Test Product",
+                "name": "Test Product", 
                 "price": 1000,
                 "barcode_id": None,
                 "active": True,
@@ -108,7 +141,7 @@ class TestCreateItem:
 
 
 class TestGetItems:
-    def test_get_all_items(self, mock_supabase):
+    def test_get_all_items(self, mock_supabase, mock_auth_user):
         """Test getting all items"""
         mock_response = Mock()
         mock_response.data = [
@@ -125,7 +158,7 @@ class TestGetItems:
         assert len(response.json()) == 2
         assert response.json()[0]["name"] == "Item 1"
 
-    def test_get_items_filtered_active(self, mock_supabase):
+    def test_get_items_filtered_active(self, mock_supabase, mock_auth_user):
         """Test getting items filtered by active status"""
         mock_response = Mock()
         mock_response.data = [
@@ -141,7 +174,7 @@ class TestGetItems:
         assert len(response.json()) == 1
         assert response.json()[0]["active"] is True
 
-    def test_get_items_empty(self, mock_supabase):
+    def test_get_items_empty(self, mock_supabase, mock_auth_user):
         """Test getting items when none exist"""
         mock_response = Mock()
         mock_response.data = []
@@ -156,7 +189,7 @@ class TestGetItems:
 
 
 class TestGetItemById:
-    def test_get_item_success(self, mock_supabase):
+    def test_get_item_success(self, mock_supabase, mock_auth_user):
         """Test getting item by ID"""
         mock_response = Mock()
         mock_response.data = [
@@ -172,7 +205,7 @@ class TestGetItemById:
         assert response.json()["id"] == "123"
         assert response.json()["name"] == "Test Item"
 
-    def test_get_item_not_found(self, mock_supabase):
+    def test_get_item_not_found(self, mock_supabase, mock_auth_user):
         """Test getting non-existent item"""
         mock_response = Mock()
         mock_response.data = []
@@ -267,7 +300,7 @@ class TestUpdateItem:
 
 
 class TestDeleteItem:
-    def test_soft_delete_item(self, mock_supabase):
+    def test_soft_delete_item(self, mock_supabase, mock_auth_admin):
         """Test soft delete of item"""
         check_response = Mock()
         check_response.data = [{"id": "123"}]
@@ -286,7 +319,7 @@ class TestDeleteItem:
 
         assert response.status_code == 204
 
-    def test_hard_delete_item(self, mock_supabase):
+    def test_hard_delete_item(self, mock_supabase, mock_auth_admin):
         """Test hard delete of item"""
         check_response = Mock()
         check_response.data = [{"id": "123"}]
@@ -305,7 +338,7 @@ class TestDeleteItem:
 
         assert response.status_code == 204
 
-    def test_delete_item_not_found(self, mock_supabase):
+    def test_delete_item_not_found(self, mock_supabase, mock_auth_admin):
         """Test deleting non-existent item"""
         mock_response = Mock()
         mock_response.data = []
