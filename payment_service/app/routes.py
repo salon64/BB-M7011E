@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Request, Depends
 from supabase import Client
 from postgrest.exceptions import APIError
 from app.models import PaymentResponse, PaymentRequest
 from app.database import get_supabase
+from app.auth import require_auth
 
 router = APIRouter()
 
@@ -12,9 +13,23 @@ async def health_check():
     return {"status": "healthy"}
 
 
+@router.get("/auth/me")
+async def get_current_user(token_data: dict = Depends(require_auth)):
+    """Get information about the currently authenticated user"""
+    return {
+        "user_id": token_data.get("sub"),
+        "username": token_data.get("preferred_username"),
+        "email": token_data.get("email"),
+        "roles": token_data.get("realm_access", {}).get("roles", []),
+        "service": "payment-service"
+    }
+
+
 @router.post("/payments/debit", response_model=PaymentResponse)
 async def debit_payment(
-    request: PaymentRequest, supabase: Client = Depends(get_supabase)
+    request: PaymentRequest, 
+    supabase: Client = Depends(get_supabase),
+    token_data: dict = Depends(require_auth)
 ):
     """Debits a specified amount from a user's account.
 

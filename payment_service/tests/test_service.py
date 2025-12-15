@@ -4,19 +4,35 @@ from pathlib import Path
 # Adding parent directory (payment_service) to the path so imports work
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import pytest  # noqa: E402
-from fastapi.testclient import TestClient  # noqa: E402
-from unittest.mock import Mock  # noqa: E402
-from uuid import UUID  # noqa: E402
-from postgrest.exceptions import APIError  # noqa: E402
-
-from main import app  # noqa: E402
-from app.database import get_supabase  # noqa: E402
+import pytest  
+from fastapi.testclient import TestClient  
+from unittest.mock import Mock 
+from uuid import UUID  
+from postgrest.exceptions import APIError
+from main import app  
+from app.database import get_supabase  
+from app.auth import require_auth  
 
 
 @pytest.fixture
-def client(mock_supabase):
-    """Provide a test client for the FastAPI app with mocked Supabase."""
+def mock_auth():
+    """Mock authentication for tests"""
+    def mock_auth_dependency():
+        return {
+            "sub": "test-user-id",
+            "preferred_username": "testuser",
+            "email": "test@example.com",
+            "realm_access": {"roles": ["user"]}
+        }
+    
+    app.dependency_overrides[require_auth] = mock_auth_dependency
+    yield mock_auth_dependency
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def client(mock_supabase, mock_auth):
+    """Provide a test client for the FastAPI app with mocked Supabase and auth."""
     # Override the get_supabase dependency with our mock
     app.dependency_overrides[get_supabase] = lambda: mock_supabase
     yield TestClient(app)
@@ -92,7 +108,6 @@ class TestHealthCheck:
 
         assert response.status_code == 200
         assert response.json() == {"status": "healthy"}
-
 
 class TestDebitPayment:
 

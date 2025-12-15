@@ -37,6 +37,10 @@ spec:
               key: SUPABASE_KEY
         - name: PRODUCTS_SERVICE_URL
           value: "http://products-service:8001"
+        - name: KEYCLOAK_URL
+          value: "https://keycloak-dev.ltu-m7011e-10.se"
+        - name: KEYCLOAK_REALM
+          value: "BBosch"
         livenessProbe:
           httpGet:
             path: /health

@@ -1,0 +1,40 @@
+# PostgreSQL Configuration
+postgres:
+  storageClassName: "local-path"
+  timezone: "Europe/Stockholm"
+  user: keycloak
+  password: keycloakpassword
+  image: postgres:13
+  resourceLimits: False
+  cpu: "1000m"
+  memory: "1000Mi"
+  storage: "5Gi"
+
+# Keycloak Configuration
+keycloak:
+  replicas: 1
+  image: quay.io/keycloak/keycloak:23.0
+
+  adminUser: admin
+  adminPassword: BBadmin
+
+  database:
+    vendor: postgres
+    host: postgres-service
+    port: 5432
+    database: keycloak
+    username: keycloak
+    password: keycloakpassword
+
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+
+# Ingress configuration
+domain: keycloak-dev.ltu-m7011e-10.se
+email: jusgav-1@student.ltu.se
+certIssuer: letsencrypt-staging
