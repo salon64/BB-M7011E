@@ -4,27 +4,28 @@ from pathlib import Path
 # Adding parent directory (payment_service) to the path so imports work
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import pytest  
-from fastapi.testclient import TestClient  
-from unittest.mock import Mock 
-from uuid import UUID  
+import pytest
+from fastapi.testclient import TestClient
+from unittest.mock import Mock
+from uuid import UUID
 from postgrest.exceptions import APIError
-from main import app  
-from app.database import get_supabase  
-from app.auth import require_auth  
+from main import app
+from app.database import get_supabase
+from app.auth import require_auth
 
 
 @pytest.fixture
 def mock_auth():
     """Mock authentication for tests"""
+
     def mock_auth_dependency():
         return {
             "sub": "test-user-id",
             "preferred_username": "testuser",
             "email": "test@example.com",
-            "realm_access": {"roles": ["user"]}
+            "realm_access": {"roles": ["user"]},
         }
-    
+
     app.dependency_overrides[require_auth] = mock_auth_dependency
     yield mock_auth_dependency
     app.dependency_overrides.clear()
@@ -108,6 +109,7 @@ class TestHealthCheck:
 
         assert response.status_code == 200
         assert response.json() == {"status": "healthy"}
+
 
 class TestDebitPayment:
 
