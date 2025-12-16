@@ -24,10 +24,10 @@ def mock_auth_user():
         return {
             "sub": "test-user-id",
             "preferred_username": "testuser",
-            "email": "test@example.com", 
-            "realm_access": {"roles": ["user"]}
+            "email": "test@example.com",
+            "realm_access": {"roles": ["user"]},
         }
-    
+
     app.dependency_overrides[require_auth] = mock_user_dependency
     yield mock_user_dependency
     app.dependency_overrides.clear()
@@ -38,12 +38,12 @@ def mock_auth_user():
 def mock_auth_admin():
     def mock_admin_dependency():
         return {
-            "sub": "admin-user-id", 
+            "sub": "admin-user-id",
             "preferred_username": "admin",
             "email": "admin@example.com",
-            "realm_access": {"roles": ["admin", "user"]}
+            "realm_access": {"roles": ["admin", "user"]},
         }
-    
+
     app.dependency_overrides[require_admin] = mock_admin_dependency
     yield mock_admin_dependency
     app.dependency_overrides.clear()
@@ -94,7 +94,9 @@ class TestCreateItem:
                 "active": True,
             }
         ]
-        mock_supabase.table.return_value.insert.return_value.execute.return_value = mock_response
+        mock_supabase.table.return_value.insert.return_value.execute.return_value = (
+            mock_response
+        )
 
         response = client.post(
             "/items", json={"name": "Test Product", "price": 1000, "barcode_id": 12345}
@@ -126,13 +128,15 @@ class TestCreateItem:
         mock_response.data = [
             {
                 "id": "123e4567-e89b-12d3-a456-426614174000",
-                "name": "Test Product", 
+                "name": "Test Product",
                 "price": 1000,
                 "barcode_id": None,
                 "active": True,
             }
         ]
-        mock_supabase.table.return_value.insert.return_value.execute.return_value = mock_response
+        mock_supabase.table.return_value.insert.return_value.execute.return_value = (
+            mock_response
+        )
 
         response = client.post("/items", json={"name": "Test Product", "price": 1000})
 
@@ -145,8 +149,20 @@ class TestGetItems:
         """Test getting all items"""
         mock_response = Mock()
         mock_response.data = [
-            {"id": "1", "name": "Item 1", "price": 100, "barcode_id": None, "active": True},
-            {"id": "2", "name": "Item 2", "price": 200, "barcode_id": 123, "active": False},
+            {
+                "id": "1",
+                "name": "Item 1",
+                "price": 100,
+                "barcode_id": None,
+                "active": True,
+            },
+            {
+                "id": "2",
+                "name": "Item 2",
+                "price": 200,
+                "barcode_id": 123,
+                "active": False,
+            },
         ]
         mock_supabase.table.return_value.select.return_value.order.return_value.execute.return_value = (
             mock_response
@@ -162,7 +178,13 @@ class TestGetItems:
         """Test getting items filtered by active status"""
         mock_response = Mock()
         mock_response.data = [
-            {"id": "1", "name": "Item 1", "price": 100, "barcode_id": None, "active": True}
+            {
+                "id": "1",
+                "name": "Item 1",
+                "price": 100,
+                "barcode_id": None,
+                "active": True,
+            }
         ]
         mock_supabase.table.return_value.select.return_value.eq.return_value.order.return_value.execute.return_value = (
             mock_response
@@ -193,7 +215,13 @@ class TestGetItemById:
         """Test getting item by ID"""
         mock_response = Mock()
         mock_response.data = [
-            {"id": "123", "name": "Test Item", "price": 500, "barcode_id": None, "active": True}
+            {
+                "id": "123",
+                "name": "Test Item",
+                "price": 500,
+                "barcode_id": None,
+                "active": True,
+            }
         ]
         mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value = (
             mock_response
@@ -228,7 +256,13 @@ class TestUpdateItem:
         # Mock update response
         update_response = Mock()
         update_response.data = [
-            {"id": "123", "name": "Updated Item", "price": 1500, "barcode_id": 999, "active": True}
+            {
+                "id": "123",
+                "name": "Updated Item",
+                "price": 1500,
+                "barcode_id": 999,
+                "active": True,
+            }
         ]
 
         mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value = (
@@ -239,7 +273,8 @@ class TestUpdateItem:
         )
 
         response = client.put(
-            "/items/123", json={"name": "Updated Item", "price": 1500, "barcode_id": 999}
+            "/items/123",
+            json={"name": "Updated Item", "price": 1500, "barcode_id": 999},
         )
 
         assert response.status_code == 200

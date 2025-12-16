@@ -6,16 +6,17 @@ from gotrue import BaseModel
 from datetime import datetime
 
 
-
 DB_PATH = Path("./windows_database/mydb.sqlite3")
 
 app = FastAPI(title="BBL API", version="1.0")
+
 
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row  # enables dict-style rows
     conn.execute("PRAGMA foreign_keys = ON;")
     return conn
+
 
 def confirm_user_from_xpel_db(card_id: str) -> bool:
     """
@@ -41,9 +42,11 @@ def confirm_user_from_xpel_db(card_id: str) -> bool:
     #     return False
     # update_local_user(card_id, name, 1)
     # return True
-    
 
-def update_local_user(card_id: str, status: int, name: str, conn: sqlite3.Connection = None) -> None:
+
+def update_local_user(
+    card_id: str, status: int, name: str, conn: sqlite3.Connection = None
+) -> None:
     """
     Update user status in local database. Creates the user if they don't exist.
     Args:
@@ -55,16 +58,22 @@ def update_local_user(card_id: str, status: int, name: str, conn: sqlite3.Connec
     should_close = conn is None
     if should_close:
         conn = get_db_connection()
-    
+
     try:
         cur = conn.cursor()
-        cur.execute("INSERT OR IGNORE INTO users (card_id, name, balance, active) VALUES (?, ?, ?, ?);",
-                    (card_id, name, 0, 0))
-        cur.execute("UPDATE users SET active = ?, name = ? WHERE card_id = ?", (status, name, card_id))
+        cur.execute(
+            "INSERT OR IGNORE INTO users (card_id, name, balance, active) VALUES (?, ?, ?, ?);",
+            (card_id, name, 0, 0),
+        )
+        cur.execute(
+            "UPDATE users SET active = ?, name = ? WHERE card_id = ?",
+            (status, name, card_id),
+        )
         conn.commit()
     finally:
         if should_close:
             conn.close()
+
 
 # API endpoint for updating user status and name
 @app.put("/user/{card_id}/data", status_code=204)
@@ -82,10 +91,12 @@ class LineItem(BaseModel):
     item_id: str
     quantity: int = 1
 
+
 class PurchaseRequest(BaseModel):
     card_id: str
     items: List[LineItem]
     mode: Optional[str] = "all_or_nothing"
+
 
 # {
 #   "card_id": "uuid-of-user",
@@ -95,6 +106,7 @@ class PurchaseRequest(BaseModel):
 #   ],
 #   "mode": "all_or_nothing"   // optional: "all_or_nothing" (recommended) or "partial"
 # }
+
 
 # idempotency_key is saved as: userid-path-idempotencykey
 # they are saved with an expiration time of 24 hours
@@ -108,32 +120,38 @@ def purchase_items(req: PurchaseRequest, idempotency_key: str = Header(None)):
     cur = conn.cursor()
 
     if idempotency_key:
-        cur.execute("""
+        cur.execute(
+            """
             CREATE TABLE IF NOT EXISTS idempotency (
                 key TEXT PRIMARY KEY,
                 result_json TEXT,
                 created_at TIMESTAMP NOT NULL DEFAULT (datetime('now'))
             );
-        """)
-        cur.execute("SELECT result_json FROM idempotency WHERE key = ?", (idempotency_key,))
+        """
+        )
+        cur.execute(
+            "SELECT result_json FROM idempotency WHERE key = ?", (idempotency_key,)
+        )
         row = cur.fetchone()
         if row:
             return {"idempotent_replay": True, "result": row["result_json"]}
-        
-        
+
     conn.close()
 
     # TODO: idempotency might be useful here
     if not confirm_user_from_xpel_db(req.card_id):
-        raise HTTPException(status_code=403, detail="User not found or inactive in xp-el database")
-
+        raise HTTPException(
+            status_code=403, detail="User not found or inactive in xp-el database"
+        )
 
     conn = get_db_connection()
     cur = conn.cursor()
 
     item_ids = [li.item_id for li in req.items]
     placeholders = ",".join("?" for _ in item_ids)
-    cur.execute(f"SELECT id, price, active FROM items WHERE id IN ({placeholders})", item_ids)
+    cur.execute(
+        f"SELECT id, price, active FROM items WHERE id IN ({placeholders})", item_ids
+    )
     items_map = {r["id"]: r for r in cur.fetchall()}
 
     total = 0
@@ -141,7 +159,9 @@ def purchase_items(req: PurchaseRequest, idempotency_key: str = Header(None)):
         if li.item_id not in items_map or items_map[li.item_id]["active"] == 0:
             if req.mode == "all_or_nothing":
                 conn.close()
-                raise HTTPException(status_code=400, detail=f"Item {li.item_id} not found or inactive")
+                raise HTTPException(
+                    status_code=400, detail=f"Item {li.item_id} not found or inactive"
+                )
             else:
                 continue
         total += items_map[li.item_id]["price"] * li.quantity
@@ -151,7 +171,7 @@ def purchase_items(req: PurchaseRequest, idempotency_key: str = Header(None)):
         # Atomic deduction
         cur.execute(
             "UPDATE users SET balance = balance - ? WHERE card_id = ? AND balance >= ?",
-            (total, req.card_id, total)
+            (total, req.card_id, total),
         )
         if cur.rowcount == 0:
             cur.execute("ROLLBACK")
@@ -162,14 +182,16 @@ def purchase_items(req: PurchaseRequest, idempotency_key: str = Header(None)):
             for _ in range(li.quantity):
                 cur.execute(
                     "INSERT INTO transaction_history (user_card_id, item_id, time) VALUES (?, ?, ?)",
-                    (req.card_id, li.item_id, now)
+                    (req.card_id, li.item_id, now),
                 )
 
         # optionally persist idempotency result
         result_summary = {"total": total, "timestamp": now}
         if idempotency_key:
-            cur.execute("INSERT INTO idempotency(key, result_json) VALUES (?, ?)",
-                        (idempotency_key, str(result_summary)))
+            cur.execute(
+                "INSERT INTO idempotency(key, result_json) VALUES (?, ?)",
+                (idempotency_key, str(result_summary)),
+            )
 
         cur.execute("COMMIT")
         return {"success": True, "total": total, "summary": result_summary}
@@ -180,6 +202,7 @@ def purchase_items(req: PurchaseRequest, idempotency_key: str = Header(None)):
         raise HTTPException(status_code=500, detail="internal error")
     finally:
         conn.close()
+
 
 @app.post("/admin/archive", status_code=200)
 async def archive_old_transactions():
@@ -193,88 +216,113 @@ async def archive_old_transactions():
     """
     conn = get_db_connection()
     cur = conn.cursor()
-    
+
     try:
         # Begin exclusive transaction - this will block other connections
         cur.execute("BEGIN EXCLUSIVE TRANSACTION")
-        
+
         # Get the cutoff date for old transactions (1 week ago)
         cur.execute("SELECT datetime('now', '-7 days') as cutoff")
         cutoff_date = cur.fetchone()["cutoff"]
-        
+
         # First, let's get all old transactions
-        cur.execute("""
+        cur.execute(
+            """
             SELECT th.id, th.user_card_id, u.name as user_name, 
                    th.item_id, i.name as item_name, i.price, th.time
             FROM transaction_history th
             LEFT JOIN users u ON th.user_card_id = u.card_id
             LEFT JOIN items i ON th.item_id = i.id
             WHERE th.time < ?
-        """, (cutoff_date,))
-        
+        """,
+            (cutoff_date,),
+        )
+
         old_transactions = cur.fetchall()
-        
+
         if old_transactions:
             # Create archive filename with timestamp
             archive_dir = Path("transaction_archives")
             archive_dir.mkdir(exist_ok=True)
-            
-            archive_path = archive_dir / f"transactions_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
-            
+
+            archive_path = (
+                archive_dir
+                / f"transactions_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+            )
+
             # Write to CSV file
-            with open(archive_path, 'w', newline='') as f:
+            with open(archive_path, "w", newline="") as f:
                 import csv
+
                 writer = csv.writer(f)
-                writer.writerow(['id', 'user_card_id', 'user_name', 'item_id', 
-                               'item_name', 'price', 'transaction_time'])
-                
+                writer.writerow(
+                    [
+                        "id",
+                        "user_card_id",
+                        "user_name",
+                        "item_id",
+                        "item_name",
+                        "price",
+                        "transaction_time",
+                    ]
+                )
+
                 for trans in old_transactions:
-                    writer.writerow([
-                        trans['id'], trans['user_card_id'], trans['user_name'],
-                        trans['item_id'], trans['item_name'], trans['price'],
-                        trans['time']
-                    ])
-            
+                    writer.writerow(
+                        [
+                            trans["id"],
+                            trans["user_card_id"],
+                            trans["user_name"],
+                            trans["item_id"],
+                            trans["item_name"],
+                            trans["price"],
+                            trans["time"],
+                        ]
+                    )
+
             # Delete archived transactions
-            cur.execute("""
+            cur.execute(
+                """
                 DELETE FROM transaction_history
                 WHERE time < ?
-            """, (cutoff_date,))
-            
+            """,
+                (cutoff_date,),
+            )
+
             archived_count = len(old_transactions)
         else:
             archived_count = 0
             archive_path = None
-        
+
         # Clean up expired idempotency keys (older than 24 hours)
-        cur.execute("""
+        cur.execute(
+            """
             DELETE FROM idempotency 
             WHERE datetime('now', '-24 hours') >= created_at
-        """)
+        """
+        )
         deleted_keys = cur.execute("SELECT changes() as count").fetchone()["count"]
-        
+
         cur.execute("COMMIT")
-        
+
         return {
             "success": True,
             "transactions_archived": archived_count,
             "archive_file": str(archive_path) if archive_path else None,
             "expired_keys_deleted": deleted_keys,
-            "archive_time": datetime.utcnow().isoformat()
+            "archive_time": datetime.utcnow().isoformat(),
         }
-        
+
     except Exception as e:
         cur.execute("ROLLBACK")
-        raise HTTPException(status_code=500, detail=f"Archive operation failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Archive operation failed: {str(e)}"
+        )
     finally:
         conn.close()
 
 
-
-
-
-
-#TODO: return new balance after adding funds
+# TODO: return new balance after adding funds
 # Endpoint to add balance to a user
 @app.patch("/user/{card_id}/balance", status_code=204)
 def add_balance_to_user(card_id: str, amount: int):
@@ -285,7 +333,9 @@ def add_balance_to_user(card_id: str, amount: int):
     """
 
     if not confirm_user_from_xpel_db(card_id):
-        raise HTTPException(status_code=403, detail="User not found or inactive in xp-el database")
+        raise HTTPException(
+            status_code=403, detail="User not found or inactive in xp-el database"
+        )
 
     if amount == 0:
         return  # no-op
@@ -295,7 +345,7 @@ def add_balance_to_user(card_id: str, amount: int):
         cur = conn.cursor()
         cur.execute(
             "UPDATE users SET balance = balance + ? WHERE card_id = ?",
-            (amount, card_id)
+            (amount, card_id),
         )
         if cur.rowcount == 0:
             raise HTTPException(status_code=404, detail="User not found")
@@ -321,8 +371,3 @@ def get_balance_from_card(card_id: str):
         raise HTTPException(status_code=404, detail="User not found")
 
     return {"name": row["name"], "balance": row["balance"]}
-
-       
-
-
-    

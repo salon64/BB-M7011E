@@ -111,10 +111,12 @@ async def metrics_middleware(request: Request, call_next):
     method = request.method
     status_code = response.status_code
 
-    http_request_duration.labels(method=method, endpoint=endpoint, status_code=status_code).observe(
-        duration
-    )
-    http_request_total.labels(method=method, endpoint=endpoint, status_code=status_code).inc()
+    http_request_duration.labels(
+        method=method, endpoint=endpoint, status_code=status_code
+    ).observe(duration)
+    http_request_total.labels(
+        method=method, endpoint=endpoint, status_code=status_code
+    ).inc()
 
     return response
 
@@ -182,7 +184,7 @@ async def create_item(item: ItemCreate, token_data: dict = Depends(require_admin
 @app.get("/items", response_model=list[ItemResponse])
 async def get_items(
     active: Optional[bool] = Query(None, description="Filter by active status"),
-    token_data: dict = Depends(require_auth)
+    token_data: dict = Depends(require_auth),
 ):
     """Get all items, optionally filtered by active status - requires authentication"""
     start_time = time.time()
@@ -209,7 +211,9 @@ async def get_item(item_id: str, token_data: dict = Depends(require_auth)):
     """Get a specific item by ID - requires authentication"""
     start_time = time.time()
     try:
-        response = get_supabase_client().table("Items").select("*").eq("id", item_id).execute()
+        response = (
+            get_supabase_client().table("Items").select("*").eq("id", item_id).execute()
+        )
 
         if not response.data:
             raise HTTPException(status_code=404, detail="Item not found")
@@ -233,7 +237,11 @@ async def update_item(item_id: str, item_update: ItemUpdate):
     try:
         # Check if item exists
         check_response = (
-            get_supabase_client().table("Items").select("id").eq("id", item_id).execute()
+            get_supabase_client()
+            .table("Items")
+            .select("id")
+            .eq("id", item_id)
+            .execute()
         )
         if not check_response.data:
             raise HTTPException(status_code=404, detail="Item not found")
@@ -245,7 +253,11 @@ async def update_item(item_id: str, item_update: ItemUpdate):
             raise HTTPException(status_code=400, detail="No fields to update")
 
         response = (
-            get_supabase_client().table("Items").update(update_data).eq("id", item_id).execute()
+            get_supabase_client()
+            .table("Items")
+            .update(update_data)
+            .eq("id", item_id)
+            .execute()
         )
 
         if not response.data:
@@ -273,23 +285,27 @@ async def get_current_user(token_data: dict = Depends(require_auth)):
         "username": token_data.get("preferred_username"),
         "email": token_data.get("email"),
         "roles": token_data.get("realm_access", {}).get("roles", []),
-        "service": "item-service"
+        "service": "item-service",
     }
 
 
 # Delete item (soft delete by setting active=False)
 @app.delete("/items/{item_id}", status_code=204)
 async def delete_item(
-    item_id: str, 
+    item_id: str,
     hard_delete: bool = Query(False, description="Permanently delete the item"),
-    token_data: dict = Depends(require_admin)
+    token_data: dict = Depends(require_admin),
 ):
     """Delete an item (soft delete by default, use hard_delete=true for permanent deletion) - requires admin role"""
     start_time = time.time()
     try:
         # Check if item exists
         check_response = (
-            get_supabase_client().table("Items").select("id").eq("id", item_id).execute()
+            get_supabase_client()
+            .table("Items")
+            .select("id")
+            .eq("id", item_id)
+            .execute()
         )
         if not check_response.data:
             raise HTTPException(status_code=404, detail="Item not found")

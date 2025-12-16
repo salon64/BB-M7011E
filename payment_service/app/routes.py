@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request, Depends
+from fastapi import APIRouter, HTTPException, Depends
 from supabase import Client
 from postgrest.exceptions import APIError
 from app.models import PaymentResponse, PaymentRequest
@@ -21,15 +21,15 @@ async def get_current_user(token_data: dict = Depends(require_auth)):
         "username": token_data.get("preferred_username"),
         "email": token_data.get("email"),
         "roles": token_data.get("realm_access", {}).get("roles", []),
-        "service": "payment-service"
+        "service": "payment-service",
     }
 
 
 @router.post("/payments/debit", response_model=PaymentResponse)
 async def debit_payment(
-    request: PaymentRequest, 
+    request: PaymentRequest,
     supabase: Client = Depends(get_supabase),
-    token_data: dict = Depends(require_auth)
+    token_data: dict = Depends(require_auth),
 ):
     """Debits a specified amount from a user's account.
 

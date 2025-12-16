@@ -10,7 +10,9 @@ class Settings:
         self.supabase_key = os.getenv("SUPABASE_KEY", "test-key")
 
         # Other services
-        self.products_service_url = os.getenv("PRODUCTS_SERVICE_URL", "http://localhost:8001")
+        self.products_service_url = os.getenv(
+            "PRODUCTS_SERVICE_URL", "http://localhost:8001"
+        )
 
         # Service settings
         self.service_name = "payments-service"

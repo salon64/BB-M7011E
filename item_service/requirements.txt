@@ -7,5 +7,5 @@ pytest>=7.4.3
 pytest-cov==4.1.0
 httpx>=0.25.0
 PyJWT==2.10.1
-cryptography==41.0.7
+cryptography==42.0.4
 requests==2.31.0
