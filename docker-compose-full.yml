@@ -1,0 +1,87 @@
+# docker-compose-full.yml
+version: "3.8"
+
+services:
+  product-service:
+    build: ./product-microservice
+    ports:
+      - "8003:8003"
+    env_file:
+      - ./product-microservice/.env
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - LOG_LEVEL=INFO
+      - PORT=8003
+    networks:
+      - microservices
+      - supabase_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+  worker-service:
+    build: ./worker
+    ports:
+      - "8001:8001"
+    environment:
+      - PRODUCT_SERVICE_URL=http://product-service:8003
+      - WORKER_INTERVAL=30
+      - LOG_LEVEL=INFO
+      - PORT=8001
+    depends_on:
+      - product-service
+    networks:
+      - microservices
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    networks:
+      - microservices
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=admin
+    volumes:
+      - ./monitoring/grafana-datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - microservices
+    restart: unless-stopped
+
+networks:
+  microservices:
+    driver: bridge
+  supabase_network:
+    external: true
+    name: supabase_default
+
+volumes:
+  prometheus-data:
+  grafana-data:
