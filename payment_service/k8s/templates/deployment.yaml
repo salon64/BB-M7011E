@@ -26,14 +26,11 @@ spec:
             cpu: {{ .Values.app.resources.limits.cpu | default "10m" }}
         env:
         - name: SUPABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: payment-service-secrets
-              key: SUPABASE_URL
+          value: "http://supabase:8000"
         - name: SUPABASE_KEY
           valueFrom:
             secretKeyRef:
-              name: payment-service-secrets
+              name: supabase-secret
               key: SUPABASE_KEY
         - name: PRODUCTS_SERVICE_URL
           value: "http://products-service:8001"
