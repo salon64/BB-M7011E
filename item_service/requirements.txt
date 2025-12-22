@@ -1,6 +1,6 @@
 fastapi>=0.104.1
 uvicorn[standard]>=0.24.0
-supabase==2.26.0
+supabase==2.27.0
 pydantic>=2.5.0
 prometheus-client==0.23.1
 pytest>=7.4.3
