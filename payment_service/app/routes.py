@@ -29,7 +29,6 @@ async def get_current_user(token_data: dict = Depends(require_auth)):
 async def debit_payment(
     request: PaymentRequest,
     supabase: Client = Depends(get_supabase),
-    token_data: dict = Depends(require_auth),
 ):
     """Debits a specified amount from a user's account.
 

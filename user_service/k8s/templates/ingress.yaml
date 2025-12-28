@@ -2,24 +2,24 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ .Values.itemService.name }}
+  name: {{ .Values.userService.name }}
   annotations:
     cert-manager.io/cluster-issuer: {{ .Values.ingress.certIssuer }}
 spec:
   ingressClassName: traefik
   tls:
   - hosts:
-    - {{ .Values.itemService.domain }}
-    secretName: {{ .Values.itemService.name }}-tls
+    - {{ .Values.userService.domain }}
+    secretName: {{ .Values.userService.name }}-tls
   rules:
-  - host: {{ .Values.itemService.domain }}
+  - host: {{ .Values.userService.domain }}
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: {{ .Values.itemService.name }}
+            name: {{ .Values.userService.name }}
             port:
-              number: 8003
+              number: 8004
 {{- end }}
