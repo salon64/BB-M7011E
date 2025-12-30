@@ -1,10 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends
 from supabase import Client
 from postgrest.exceptions import APIError
-from app.models import UserCreate, addBalance
+from app.models import UserCreate, addBalance, user_set_status_response, user_set_status, fetch_user_info
 from app.database import get_supabase
 from fastapi_keycloak import FastAPIKeycloak
-import logging
+import logging, traceback
 from keycloak import KeycloakAdmin
 from app.config import settings
 
@@ -53,7 +53,6 @@ async def create_user(
     Create a user in Supabase and Keycloak. Requires valid JWT (Keycloak) auth.
     token_data contains the decoded JWT payload.
     """
-    import traceback, logging
     logger = logging.getLogger("routes")
     logger.info("/users endpoint called with: %s", request.dict())
     print("/users endpoint called with:", request.dict())
@@ -120,6 +119,73 @@ async def add_balance(
             },
         ).execute()
         return {"user_id_input": request.card_id, "new_balance": int(result.data)}
+    except APIError as e:
+        error_msg = e.message.lower()
+        if "user not found" in error_msg:
+            raise HTTPException(status_code=404, detail="User not found")
+        else:
+            raise HTTPException(status_code=500, detail=f"Database error: {e.message}")
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"An unexpected error occurred: {str(e)}"
+        )
+    
+@router.post("/user/set_status")
+async def set_user_status(
+    request: user_set_status,
+    supabase: Client = Depends(get_supabase),
+    #user=Depends(keycloak.get_current_user),
+):
+    """
+    Set a user's active status. Requires authentication.
+    """
+    try:
+        result = supabase.rpc(
+            "user_status",
+            {
+                "user_id_input": request.user_id_input,
+                "user_status_input": request.user_status_input,
+            },
+        ).execute()
+        return user_set_status_response(response=result.data)
+    except APIError as e:
+        error_msg = e.message.lower()
+        if "user not found" in error_msg:
+            raise HTTPException(status_code=404, detail="User not found")
+        elif "User status is already active=TRUE" in error_msg:
+            raise HTTPException(status_code=400, detail="User status is already active=TRUE")
+        elif "User status is already active=FALSE" in error_msg:
+            raise HTTPException(status_code=400, detail="User status is already active=FALSE")
+        else:
+            raise HTTPException(status_code=500, detail=f"Database error: {e.message}")
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"An unexpected error occurred: {str(e)}"
+        )
+    
+@router.post("/user/fetch_info")
+async def fetch_user_info(
+    request: fetch_user_info,
+    supabase: Client = Depends(get_supabase),
+    #user=Depends(keycloak.get_current_user),
+):
+    """
+    Fetch user information by user ID. Requires authentication.
+    """
+    try:
+        result = supabase.rpc(
+            "fetch_user_info",
+            {
+                "user_id_input": request.user_id,
+            },
+        ).execute()
+        user_info = result.data
+        return {
+            "user_name": user_info['user_name'],
+            "user_email": user_info['user_email'],
+            "user_balance": user_info['user_balance'],
+            "user_status": user_info['user_status'],
+        }
     except APIError as e:
         error_msg = e.message.lower()
         if "user not found" in error_msg:
