@@ -1,0 +1,365 @@
+# User Service
+
+### Key Technologies
+
+- **Framework**: FastAPI
+- **Language**: Python 3.11+
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Keycloak
+- **Containerization**: Docker
+- **Orchestration**: Kubernetes (Helm)
+- **Testing**: Pytest with coverage
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.11+
+- Docker
+- Kubernetes cluster with kubectl configured
+- Helm 3.x
+- A Supabase project (see **Database Setup** below)
+- A Keycloak instance
+
+### Local Development
+
+#### 1. Install Dependencies
+
+```bash
+cd user_service
+pip install -r requirements.txt
+```
+
+#### 2. Configure Environment
+
+Create a `.env` file in the user_service directory:
+
+```env
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_KEY=your_supabase_service_role_key
+
+KEYCLOAK_URL=https://your-keycloak-instance.com
+KEYCLOAK_REALM=BBosch
+KEYCLOAK_ADMIN_USER=admin
+KEYCLOAK_ADMIN_PASSWORD=your_admin_password
+KEYCLOAK_CLIENT_ID=user-service
+KEYCLOAK_CLIENT_SECRET=your_client_secret
+KEYCLOAK_CALLBACK_URI=http://localhost:8004/callback
+
+LOG_LEVEL=DEBUG
+```
+
+## Kubernetes Deployment
+
+### Initial Deployment
+
+Deploy the service using Helm from the project root:
+
+```bash
+helm install user-service ./user_service/k8s
+```
+
+### After Code Changes
+
+When you make changes to the code, follow these steps:
+
+#### 1. Build and Push New Docker Image
+
+```bash
+cd user_service
+docker buildx build --platform linux/amd64,linux/arm64 -t justingav/user-service:latest --push .
+```
+
+#### 2. Update Kubernetes Deployment
+
+```bash
+# Option A: Upgrade with Helm
+helm upgrade user-service ./user_service/k8s
+
+# Option B: Restart pods to pull new image
+kubectl rollout restart deployment user-service
+
+# Check rollout status
+kubectl rollout status deployment user-service
+```
+
+#### 3. View Logs
+
+```bash
+# View logs
+kubectl logs -f deployment/user-service
+
+# View specific pod logs
+kubectl get pods | grep user-service
+kubectl logs -f <pod-name>
+```
+
+### Uninstall
+
+```bash
+helm uninstall user-service
+```
+
+---
+
+## Testing the Service
+
+### Option 1: Swagger UI (Recommended for Development)
+
+Or if deployed on Kubernetes with ingress:
+
+```
+https://user-service.ltu-m7011e-10.se/docs
+```
+
+### Option 2: cURL Examples
+
+#### Health Check
+
+```bash
+curl -X GET http://user-service.ltu-m7011e-10.se/health
+```
+
+#### Create User
+
+```bash
+curl -X POST http://user-service.ltu-m7011e-10.se/users \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "John Doe",
+    "email": "john.doe@example.com",
+    "Lastname": "Doe",
+    "password": "securepassword123"
+  }'
+```
+
+#### Add Balance
+
+```bash
+curl -X POST "http://user-service.ltu-m7011e-10.se/user/add_balance?user_id=test-user&amount=100" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "card_id": 12345,
+    "amount": 100
+  }'
+```
+
+#### Set User Status
+
+```bash
+curl -X POST http://user-service.ltu-m7011e-10.se/user/set_status \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id_input": "12345",
+    "user_status_input": true
+  }'
+```
+
+#### Fetch User Info
+
+```bash
+curl -X POST http://user-service.ltu-m7011e-10.se/user/fetch_info \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": 12345
+  }'
+```
+
+---
+
+## Database Setup
+
+### Required Supabase RPC Functions
+
+The following PostgreSQL functions must be created in your Supabase project. Navigate to **Database > Functions** in your Supabase dashboard.
+
+#### 1. `create_user`
+
+Creates a new user with a randomly generated card ID.
+
+**Parameters:**
+- `name_input`: text
+- `email_input`: text
+- `password_input`: text
+
+**Returns:** void
+
+**Function Body:**
+
+```sql
+DECLARE
+  new_card_id INT8;
+  id_exists BOOLEAN;
+BEGIN
+  LOOP
+    new_card_id := floor(random() * 9000 + 1000)::INT8;
+    SELECT EXISTS (SELECT 1 FROM public."Users" WHERE card_id = new_card_id) INTO id_exists;
+    EXIT WHEN NOT id_exists;
+  END LOOP;
+
+  INSERT INTO public."Users" (card_id, name, balance, active, email, password)
+  VALUES (new_card_id, name_input, 0, TRUE, email_input, password_input);
+END;
+```
+
+---
+
+#### 2. `fetch_user_info`
+
+Retrieves user information by card ID.
+
+**Parameters:**
+- `user_id_input`: integer
+
+**Returns:** json
+
+**Function Body:**
+
+```sql
+DECLARE
+  result json;
+BEGIN
+  SELECT json_build_object(
+    'user_status', active,
+    'user_email', email,
+    'user_name', name,
+    'user_balance', balance
+  ) INTO result
+  FROM "Users"
+  WHERE card_id = user_id_input;
+
+  IF result IS NULL THEN
+    RAISE EXCEPTION 'User not found';
+  END IF;
+
+  RETURN result;
+END;
+```
+
+---
+
+#### 3. `user_status`
+
+Updates a user's active status.
+
+**Parameters:**
+- `user_id_input`: integer
+- `user_status_input`: boolean
+
+**Returns:** text
+
+**Function Body:**
+
+```sql
+DECLARE
+  current_status BOOLEAN;
+BEGIN
+  SELECT active INTO current_status
+  FROM "Users"
+  WHERE card_id = user_id_input
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'User not found';
+  END IF;
+
+  IF current_status = user_status_input THEN
+    RAISE EXCEPTION 'User status is already active=%', current_status;
+  END IF;
+
+  UPDATE "Users"
+  SET active = user_status_input
+  WHERE card_id = user_id_input;
+
+  RETURN 'User with id ' || user_id_input || ' has new status active = ' || user_status_input;
+END;
+```
+
+---
+
+#### 4. `add_balance`
+
+Adds balance to a user's account and records the transaction.
+
+**Parameters:**
+- `user_id_input`: integer
+- `balance_input`: integer
+
+**Returns:** integer (new balance)
+
+**Function Body:**
+
+```sql
+DECLARE
+  current_balance INT;
+  new_balance INT;
+BEGIN
+  -- Find and Lock the User to prevent race conditions
+  SELECT balance INTO current_balance
+  FROM "Users"
+  WHERE card_id = user_id_input
+  FOR UPDATE;
+
+  -- Run Payment Logic Checks
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'User not found';
+  END IF;
+
+  -- Create the Ledger Record
+  INSERT INTO "Transaction_History" (user_id, item, amount_delta)
+  VALUES (user_id_input, NULL, +balance_input);
+
+  -- Update the User's Balance
+  UPDATE "Users"
+  SET balance = current_balance + balance_input
+  WHERE card_id = user_id_input
+  RETURNING balance INTO new_balance;
+  
+  -- Return the Result
+  RETURN new_balance;
+END;
+```
+
+---
+
+## Running Tests
+
+### Run Tests with Coverage (from project root)
+
+```bash
+pytest user_service/tests/ --cov=user_service/app --cov-report=html --cov-report=term
+```
+
+### Run Specific Test Files
+
+```bash
+# Test authentication
+pytest tests/test_auth.py -v
+
+# Test database functions
+pytest tests/test_database.py -v
+
+# Test service endpoints
+pytest tests/test_service.py -v
+```
+
+**Note:** Authentication is currently commented out but should be enabled in production.
+
+
+### Viewing Kubernetes Resources
+
+```bash
+# Check pod status
+kubectl get pods -l app=user-service
+
+# Describe deployment
+kubectl describe deployment user-service
+
+# Check service
+kubectl get svc user-service
+
+# View ingress
+kubectl get ingress user-service
+```

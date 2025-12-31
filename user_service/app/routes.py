@@ -152,9 +152,9 @@ async def set_user_status(
         error_msg = e.message.lower()
         if "user not found" in error_msg:
             raise HTTPException(status_code=404, detail="User not found")
-        elif "User status is already active=TRUE" in error_msg:
+        elif "user status is already active=true" in error_msg:
             raise HTTPException(status_code=400, detail="User status is already active=TRUE")
-        elif "User status is already active=FALSE" in error_msg:
+        elif "user status is already active=false" in error_msg:
             raise HTTPException(status_code=400, detail="User status is already active=FALSE")
         else:
             raise HTTPException(status_code=500, detail=f"Database error: {e.message}")
