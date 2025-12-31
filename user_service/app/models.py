@@ -1,9 +1,10 @@
 from pydantic import BaseModel
 
 class UserCreate(BaseModel):
-    name: str
+    card_id: int
+    first_name: str
+    last_name: str
     email: str
-    Lastname: str
     password: str
 
 class addBalance(BaseModel):
@@ -20,3 +21,8 @@ class user_set_status_response(BaseModel):
 class fetch_user_info(BaseModel):
     user_id: int
 
+class UserInfoResponse(BaseModel):
+    first_name: str
+    last_name: str
+    balance: int
+    active: bool
