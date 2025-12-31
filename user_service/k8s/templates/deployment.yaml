@@ -33,7 +33,7 @@ spec:
                 name: supabase-secret
                 key: SUPABASE_KEY
           - name: KEYCLOAK_URL
-            value: "https://keycloak"
+            value: "http://keycloak:8080"
           - name: KEYCLOAK_REALM
             value: "bb"
           - name: KEYCLOAK_ADMIN_USER
