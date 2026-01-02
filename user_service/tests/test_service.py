@@ -20,9 +20,9 @@ def mock_auth():
     def mock_auth_dependency():
         return {
             "sub": "test-user-id",
-            "preferred_username": "testuser",
+            "preferred_username": "12345",  # card_id matching test data
             "email": "test@example.com",
-            "realm_access": {"roles": ["user"]},
+            "realm_access": {"roles": ["user", "bb_admin"]},  # Add admin role for tests
         }
 
     app.dependency_overrides[require_auth] = mock_auth_dependency
@@ -53,7 +53,8 @@ def mock_user_data():
     """Provide mock user data from the Users table."""
     return {
         "card_id": 12345,
-        "name": "John Doe",
+        "first_name": "John",
+        "last_name": "Doe",
         "email": "john.doe@example.com",
         "balance": 500,
         "active": True,
@@ -68,6 +69,35 @@ class TestHealthCheck:
 
         assert response.status_code == 200
         assert response.json() == {"status": "healthy"}
+
+
+class TestAuthJWT:
+    """Tests for the /auth/jwt endpoint."""
+
+    def test_auth_jwt_returns_decoded_token(self, client, mock_auth):
+        """Test that /auth/jwt returns the decoded JWT payload."""
+        response = client.get("/auth/jwt")
+
+        assert response.status_code == 200
+        data = response.json()
+        
+        # Verify the mock auth data is returned
+        assert data["sub"] == "test-user-id"
+        assert data["preferred_username"] == "12345"  # card_id
+        assert data["email"] == "test@example.com"
+        assert "user" in data["realm_access"]["roles"]
+        assert "bb_admin" in data["realm_access"]["roles"]
+
+    def test_auth_jwt_without_token_returns_401(self, mock_supabase):
+        """Test that /auth/jwt returns 401 when no token is provided."""
+        # Create client without auth override
+        app.dependency_overrides.clear()
+        app.dependency_overrides[get_supabase] = lambda: mock_supabase
+        client = TestClient(app)
+        
+        response = client.get("/auth/jwt")
+        
+        assert response.status_code == 401
 
 
 class TestCreateUser:
@@ -95,9 +125,10 @@ class TestCreateUser:
         response = client.post(
             "/users",
             json={
-                "name": "John Doe",
+                "card_id": 12345,
+                "first_name": "John",
+                "last_name": "Doe",
                 "email": "john.doe@example.com",
-                "Lastname": "Doe",
                 "password": "securepassword123",
             },
         )
@@ -112,9 +143,9 @@ class TestCreateUser:
         mock_supabase.rpc.assert_called_once_with(
             "create_user",
             {
-                "name_input": "John Doe",
-                "email_input": "john.doe@example.com",
-                "password_input": "securepassword123",
+                "card_id_input": 12345,
+                "first_name_input": "John",
+                "last_name_input": "Doe",
             },
         )
 
@@ -128,9 +159,10 @@ class TestCreateUser:
         response = client.post(
             "/users",
             json={
-                "name": "John Doe",
+                "card_id": 12345,
+                "first_name": "John",
+                "last_name": "Doe",
                 "email": "john.doe@example.com",
-                "Lastname": "Doe",
                 "password": "securepassword123",
             },
         )
@@ -333,10 +365,10 @@ class TestFetchUserInfo:
 
         # Mock the RPC call to fetch_user_info function
         mock_supabase.rpc.return_value.execute.return_value.data = {
-            "user_name": mock_user_data["name"],
-            "user_email": mock_user_data["email"],
-            "user_balance": mock_user_data["balance"],
-            "user_status": mock_user_data["active"],
+            "first_name": mock_user_data["first_name"],
+            "last_name": mock_user_data["last_name"],
+            "balance": mock_user_data["balance"],
+            "active": mock_user_data["active"],
         }
 
         response = client.post(
@@ -346,10 +378,10 @@ class TestFetchUserInfo:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["user_name"] == mock_user_data["name"]
-        assert data["user_email"] == mock_user_data["email"]
-        assert data["user_balance"] == mock_user_data["balance"]
-        assert data["user_status"] == mock_user_data["active"]
+        assert data["first_name"] == mock_user_data["first_name"]
+        assert data["last_name"] == mock_user_data["last_name"]
+        assert data["balance"] == mock_user_data["balance"]
+        assert data["active"] == mock_user_data["active"]
 
         # Verify the RPC was called with correct parameters
         mock_supabase.rpc.assert_called_once_with(
@@ -403,10 +435,10 @@ class TestFetchUserInfo:
         user_id = 12345
 
         mock_supabase.rpc.return_value.execute.return_value.data = {
-            "user_name": "Jane Doe",
-            "user_email": "jane@example.com",
-            "user_balance": 750,
-            "user_status": True,
+            "first_name": "Jane",
+            "last_name": "Doe",
+            "balance": 750,
+            "active": True,
         }
 
         response = client.post(
@@ -417,11 +449,11 @@ class TestFetchUserInfo:
         assert response.status_code == 200
         # Validate response structure
         data = response.json()
-        assert isinstance(data["user_name"], str)
-        assert isinstance(data["user_email"], str)
-        assert isinstance(data["user_balance"], int)
-        assert isinstance(data["user_status"], bool)
-        assert data["user_name"] == "Jane Doe"
-        assert data["user_email"] == "jane@example.com"
-        assert data["user_balance"] == 750
-        assert data["user_status"] is True
+        assert isinstance(data["first_name"], str)
+        assert isinstance(data["last_name"], str)
+        assert isinstance(data["balance"], int)
+        assert isinstance(data["active"], bool)
+        assert data["first_name"] == "Jane"
+        assert data["last_name"] == "Doe"
+        assert data["balance"] == 750
+        assert data["active"] is True

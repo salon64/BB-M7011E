@@ -21,9 +21,9 @@ def mock_auth():
     def mock_auth_dependency():
         return {
             "sub": "test-user-id",
-            "preferred_username": "testuser",
+            "preferred_username": "12345",  # card_id matching test data
             "email": "test@example.com",
-            "realm_access": {"roles": ["user"]},
+            "realm_access": {"roles": ["user", "bb_admin"]},  # Add admin role for tests
         }
 
     app.dependency_overrides[require_auth] = mock_auth_dependency
@@ -50,12 +50,14 @@ def mock_supabase():
 class TestAuthUtils:
     def test_get_jwks_client_connection_error(self, monkeypatch):
         """Test get_jwks_client() raises HTTPException 503 on connection error."""
+        # Reset the global jwks_client to None to force new client creation
         auth_module.jwks_client = None
         
-        def fake_jwks_client(*args, **kwargs):
-            raise PyJWKClientConnectionError("Connection failed")
+        def fake_pyjwkclient(*args, **kwargs):
+            raise Exception("Connection failed")
         
-        monkeypatch.setattr("jwt.PyJWKClient", fake_jwks_client)
+        # Patch PyJWKClient in the auth module
+        monkeypatch.setattr(auth_module, "PyJWKClient", fake_pyjwkclient)
         
         with pytest.raises(HTTPException) as exc:
             auth_module.get_jwks_client()

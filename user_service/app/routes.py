@@ -107,12 +107,16 @@ async def add_balance(
     user_id: str,
     amount: int,
     request: addBalance,
-    supabase: Client = Depends(get_supabase)
+    supabase: Client = Depends(get_supabase),
+    user_data: dict = Depends(require_auth),
     # user=Depends(keycloak.get_current_user),
 ):
     """
     Add balance to a user's account. Requires authentication.
     """
+
+    if request.card_id != int(user_data.get("preferred_username", -1)) and not "bb_admin" in user_data.get("realm_access", {}).get("roles", []):
+        raise HTTPException(status_code=403, detail="Cannot add balance to another user's account")
     try:
         result = supabase.rpc(
             "add_balance",
@@ -137,11 +141,15 @@ async def add_balance(
 async def set_user_status(
     request: user_set_status,
     supabase: Client = Depends(get_supabase),
-    #user=Depends(keycloak.get_current_user),
+    user_data: dict = Depends(require_auth),
 ):
     """
     Set a user's active status. Requires authentication.
     """
+
+    if not "bb_admin" in user_data.get("realm_access", {}).get("roles", []):
+        raise HTTPException(status_code=403, detail="BB Admin privileges required to set user status")
+
     try:
         result = supabase.rpc(
             "user_status",
@@ -170,11 +178,14 @@ async def set_user_status(
 async def fetch_user_info(
     request: fetch_user_info,
     supabase: Client = Depends(get_supabase),
-    #user=Depends(keycloak.get_current_user),
+    user_data: dict = Depends(require_auth),
 ):
     """
-    Fetch user information by user ID. Requires authentication.
+    Fetch user information by user ID.
     """
+
+    if request.user_id != int(user_data.get("preferred_username", -1)) and not "bb_admin" in user_data.get("realm_access", {}).get("roles", []):
+        raise HTTPException(status_code=403, detail="Cannot fetch another user's information")
     try:
         result = supabase.rpc(
             "fetch_user_info",
