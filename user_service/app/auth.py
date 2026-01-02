@@ -3,62 +3,79 @@ JWT Authentication module for Payment Service
 """
 
 import os
+import ssl
 import jwt
+from jwt import PyJWKClient
 import requests
+from typing import Optional, Dict, Any
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.config import settings
 
 # Configuration
-KEYCLOAK_URL = os.getenv("KEYCLOAK_URL", "https://keycloak-dev.ltu-m7011e-10.se")
-KEYCLOAK_REALM = os.getenv("KEYCLOAK_REALM", "BBosch")
+KEYCLOAK_URL = os.getenv("KEYCLOAK_URL", "https://keycloak.ronstad.se")
+KEYCLOAK_REALM = os.getenv("KEYCLOAK_REALM", "BB")
 CERTS_URL = f"{KEYCLOAK_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/certs"
 INSECURE = os.getenv("INSECURE", "false").lower() == "true"
 
 security = HTTPBearer()
-public_keys = None
+jwks_client: Optional[PyJWKClient] = None
 
 
-def get_public_keys():
-    """Fetch public keys from Keycloak for token verification"""
-    global public_keys
-    if not public_keys:
+def get_jwks_client() -> PyJWKClient:
+    """Get or create JWKS client for token verification"""
+    global jwks_client
+    if not jwks_client:
         try:
-            response = requests.get(CERTS_URL, verify=not INSECURE, timeout=10)
-            response.raise_for_status()
-            public_keys = response.json()
-        except requests.RequestException:
-            raise HTTPException(
-                status_code=503, detail="Authentication service unavailable"
-            )
-    return public_keys
+            if INSECURE:
+                # Create SSL context that ignores certificate verification
+                ssl_context = ssl.create_default_context()
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
+                jwks_client = PyJWKClient(CERTS_URL, ssl_context=ssl_context)
+            else:
+                jwks_client = PyJWKClient(CERTS_URL)
+        except Exception as e:
+            error_msg = f"Failed to create JWKS client for {CERTS_URL}: {str(e)}"
+            print(f"ERROR: {error_msg}", file=__import__('sys').stderr)
+            raise HTTPException(status_code=503, detail=error_msg)
+    return jwks_client
 
 
-def verify_jwt_token(token: str):
+def verify_jwt_token(token: str) -> Dict[str, Any]:
     """Verify and decode JWT token"""
     try:
-        public_keys = get_public_keys()
+        client = get_jwks_client()
+        signing_key = client.get_signing_key_from_jwt(token)
         payload = jwt.decode(
-            token, public_keys, algorithms=["RS256"], options={"verify_aud": False}
+            token, signing_key.key, algorithms=["RS256"], options={"verify_aud": False}
         )
         return payload
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    except Exception:
+    except jwt.ExpiredSignatureError as e:
+        error_msg = f"Token expired: {str(e)}"
+        print(f"ERROR: {error_msg}", file=__import__('sys').stderr)
+        raise HTTPException(status_code=401, detail=error_msg)
+    except jwt.InvalidTokenError as e:
+        error_msg = f"Invalid token: {str(e)}"
+        print(f"ERROR: {error_msg}", file=__import__('sys').stderr)
+        raise HTTPException(status_code=401, detail=error_msg)
+    except HTTPException:
+        raise  # Re-raise HTTPException from get_public_keys()
+    except Exception as e:
+        error_msg = f"Unexpected error verifying token: {str(e)}"
+        print(f"ERROR: {error_msg}", file=__import__('sys').stderr)
         raise HTTPException(
-            status_code=503, detail="Authentication service unavailable"
+            status_code=503, detail=error_msg
         )
 
 
-def require_auth(credentials: HTTPAuthorizationCredentials = Depends(security)):
+def require_auth(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Dict[str, Any]:
     """FastAPI dependency for authentication"""
     token_data = verify_jwt_token(credentials.credentials)
     return token_data
 
 
-def require_admin(credentials: HTTPAuthorizationCredentials = Depends(security)):
+def require_admin(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Dict[str, Any]:
     """FastAPI dependency for admin authentication"""
     token_data = verify_jwt_token(credentials.credentials)
 
@@ -69,7 +86,7 @@ def require_admin(credentials: HTTPAuthorizationCredentials = Depends(security))
 
     return token_data
 
-def get_admin_token():
+def get_admin_token() -> str:
     url = f"{settings.keycloak_url}/realms/{settings.keycloak_realm}/protocol/openid-connect/token"
     data = {
         "grant_type": "password",

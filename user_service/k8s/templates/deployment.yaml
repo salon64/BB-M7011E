@@ -58,6 +58,8 @@ spec:
                 key: KEYCLOAK_CLIENT_SECRET
           - name: KEYCLOAK_CALLBACK_URI
             value: "http://user-service:8004/callback"
+          - name: INSECURE
+            value: "{{ .Values.userService.insecure | default "false" }}"
         livenessProbe:
           httpGet:
             path: /health

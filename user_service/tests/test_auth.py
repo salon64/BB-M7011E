@@ -10,7 +10,8 @@ from main import app
 from fastapi.testclient import TestClient
 from app.database import get_supabase
 from app.auth import require_auth
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
+from jwt.exceptions import PyJWKClientConnectionError
 
 
 @pytest.fixture
@@ -47,27 +48,34 @@ def mock_supabase():
 
 
 class TestAuthUtils:
-    def test_get_public_keys_request_exception(self, monkeypatch):
-        """Test get_public_keys() raises HTTPException 503 on requests error."""
-        monkeypatch.setattr(auth_module, "public_keys", None)
-
-        def fake_get(*args, **kwargs):
-            raise auth_module.requests.RequestException()
-
-        monkeypatch.setattr(auth_module.requests, "get", fake_get)
+    def test_get_jwks_client_connection_error(self, monkeypatch):
+        """Test get_jwks_client() raises HTTPException 503 on connection error."""
+        auth_module.jwks_client = None
+        
+        def fake_jwks_client(*args, **kwargs):
+            raise PyJWKClientConnectionError("Connection failed")
+        
+        monkeypatch.setattr("jwt.PyJWKClient", fake_jwks_client)
+        
         with pytest.raises(HTTPException) as exc:
-            auth_module.get_public_keys()
+            auth_module.get_jwks_client()
         assert exc.value.status_code == 503
-        assert "Authentication service unavailable" in str(exc.value.detail)
+        assert "Failed to create JWKS client" in str(exc.value.detail)
 
     def test_verify_jwt_token_expired(self, monkeypatch):
         """Test verify_jwt_token raises 401 on ExpiredSignatureError."""
-        monkeypatch.setattr(auth_module, "get_public_keys", lambda: "pubkey")
+        mock_client = Mock()
+        mock_signing_key = Mock()
+        mock_signing_key.key = "test-key"
+        mock_client.get_signing_key_from_jwt.return_value = mock_signing_key
+        
+        monkeypatch.setattr(auth_module, "get_jwks_client", lambda: mock_client)
 
         def fake_decode(*a, **k):
             raise pyjwt.ExpiredSignatureError()
 
-        monkeypatch.setattr(auth_module.jwt, "decode", fake_decode)
+        monkeypatch.setattr(pyjwt, "decode", fake_decode)
+        
         with pytest.raises(HTTPException) as exc:
             auth_module.verify_jwt_token("token")
         assert exc.value.status_code == 401
@@ -75,12 +83,18 @@ class TestAuthUtils:
 
     def test_verify_jwt_token_invalid(self, monkeypatch):
         """Test verify_jwt_token raises 401 on InvalidTokenError."""
-        monkeypatch.setattr(auth_module, "get_public_keys", lambda: "pubkey")
+        mock_client = Mock()
+        mock_signing_key = Mock()
+        mock_signing_key.key = "test-key"
+        mock_client.get_signing_key_from_jwt.return_value = mock_signing_key
+        
+        monkeypatch.setattr(auth_module, "get_jwks_client", lambda: mock_client)
 
         def fake_decode(*a, **k):
             raise pyjwt.InvalidTokenError()
 
-        monkeypatch.setattr(auth_module.jwt, "decode", fake_decode)
+        monkeypatch.setattr(pyjwt, "decode", fake_decode)
+        
         with pytest.raises(HTTPException) as exc:
             auth_module.verify_jwt_token("token")
         assert exc.value.status_code == 401
@@ -88,16 +102,15 @@ class TestAuthUtils:
 
     def test_verify_jwt_token_generic_exception(self, monkeypatch):
         """Test verify_jwt_token raises 503 on generic exception."""
-        monkeypatch.setattr(auth_module, "get_public_keys", lambda: "pubkey")
-
-        def fake_decode(*a, **k):
-            raise Exception("fail")
-
-        monkeypatch.setattr(auth_module.jwt, "decode", fake_decode)
+        mock_client = Mock()
+        mock_client.get_signing_key_from_jwt.side_effect = Exception("Unknown error")
+        
+        monkeypatch.setattr(auth_module, "get_jwks_client", lambda: mock_client)
+        
         with pytest.raises(HTTPException) as exc:
             auth_module.verify_jwt_token("token")
         assert exc.value.status_code == 503
-        assert "Authentication service unavailable" in str(exc.value.detail)
+        assert "Unexpected error verifying token" in str(exc.value.detail)
 
     def test_require_admin_no_admin_role(self, monkeypatch):
         """Test require_admin raises 403 if 'admin' not in roles."""
@@ -114,6 +127,25 @@ class TestAuthUtils:
             auth_module.require_admin(DummyCred())
         assert exc.value.status_code == 403
         assert "Admin access required" in str(exc.value.detail)
+
+    def test_verify_jwt_token_success(self, monkeypatch):
+        """Test verify_jwt_token successfully decodes valid token."""
+        mock_client = Mock()
+        mock_signing_key = Mock()
+        mock_signing_key.key = "test-key"
+        mock_client.get_signing_key_from_jwt.return_value = mock_signing_key
+        
+        expected_payload = {
+            "sub": "user-123",
+            "preferred_username": "testuser",
+            "realm_access": {"roles": ["user"]}
+        }
+        
+        monkeypatch.setattr(auth_module, "get_jwks_client", lambda: mock_client)
+        monkeypatch.setattr(pyjwt, "decode", lambda *a, **k: expected_payload)
+        
+        result = auth_module.verify_jwt_token("valid-token")
+        assert result == expected_payload
 
 
 #class TestAuthMeEndpoint:

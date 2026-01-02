@@ -53,6 +53,7 @@ userService:
   replicas: 1
   image: justingav/user-service
   tag: latest
+  insecure: "false"  # Use proper SSL certificates in staging
   autoscaling:
     enabled: true
     minReplicas: 1

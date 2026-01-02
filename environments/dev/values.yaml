@@ -54,6 +54,7 @@ userService:
   image: justingav/user-service
   tag: latest
   pullPolicy: Always
+  insecure: "true"  # Accept self-signed certificates in dev
   autoscaling:
     enabled: true
     minReplicas: 1

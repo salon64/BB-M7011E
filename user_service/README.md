@@ -48,7 +48,81 @@ KEYCLOAK_CLIENT_ID=user-service
 KEYCLOAK_CLIENT_SECRET=your_client_secret
 KEYCLOAK_CALLBACK_URI=http://localhost:8004/callback
 
+# Set to 'true' to skip SSL certificate verification (dev only with self-signed certs)
+INSECURE=false
+
 LOG_LEVEL=DEBUG
+```
+
+#### 3. Run the Service Locally
+
+```bash
+# Make sure environment variables are exported
+export INSECURE=true  # If using self-signed certificates
+export KEYCLOAK_URL=https://your-keycloak-instance.com
+export KEYCLOAK_REALM=BBosch
+
+# Run with uvicorn
+uvicorn main:app --reload --host 0.0.0.0 --port 8080
+
+# Or run directly
+python main.py
+```
+
+The service will be available at `http://localhost:8080`. Access the API documentation at `http://localhost:8080/docs`.
+
+---
+
+## Authentication
+
+The User Service uses JWT tokens issued by Keycloak for authentication. Protected endpoints require a valid Bearer token in the Authorization header.
+
+### Getting a Token
+
+Use the provided helper script to obtain a token:
+
+```bash
+# Set your credentials
+export KC_URL=https://your-keycloak-instance.com
+export KC_REALM=BBosch
+export KC_CLIENT_ID=your-client-id
+export KC_CLIENT_SECRET=your-client-secret
+export KC_USERNAME=your-username
+export KC_PASSWORD=your-password
+export KC_INSECURE=true  # Only for self-signed certs
+
+# Get and decode token
+python get_token.py
+```
+
+This script will:
+- Request a token from Keycloak
+- Decode the token (without verification)
+- Validate the token signature using Keycloak's public keys
+- Display the full token payload
+
+### Testing Authentication
+
+Test the `/auth/jwt` endpoint to verify token decoding:
+
+```bash
+# Get a token and test the endpoint
+python test_auth_endpoint.py
+```
+
+Or manually with curl:
+
+```bash
+# Get token first
+TOKEN=$(curl -s -X POST "https://keycloak.example.com/realms/BBosch/protocol/openid-connect/token" \
+  -d "grant_type=password" \
+  -d "client_id=your-client-id" \
+  -d "client_secret=your-secret" \
+  -d "username=your-user" \
+  -d "password=your-pass" | jq -r '.access_token')
+
+# Test authenticated endpoint
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8080/auth/jwt
 ```
 
 ## Kubernetes Deployment
@@ -138,10 +212,20 @@ https://user-service.ltu-m7011e-10.se/docs
 
 ### Option 2: cURL Examples
 
+**Note:** Most endpoints now require JWT authentication. Include the `Authorization: Bearer <token>` header for protected endpoints. See the **Authentication** section above for how to obtain a token.
+
 #### Health Check
 
 ```bash
 curl -X GET http://user-service.ltu-m7011e-10.se/health
+```
+
+#### Get Decoded JWT (Authenticated)
+
+```bash
+# Requires valid JWT token
+curl -X GET http://user-service.ltu-m7011e-10.se/auth/jwt \
+  -H "Authorization: Bearer <your-jwt-token>"
 ```
 
 #### Create User
@@ -355,6 +439,14 @@ END;
 
 ## Running Tests
 
+### Prerequisites
+
+Install test dependencies:
+
+```bash
+pip install pytest pytest-cov
+```
+
 ### Run Tests with Coverage (from project root)
 
 ```bash
@@ -365,14 +457,104 @@ pytest user_service/tests/ --cov=user_service/app --cov-report=html --cov-report
 
 ```bash
 # Test authentication
-pytest tests/test_auth.py -v
+pytest user_service/tests/test_auth.py -v
 
 # Test database functions
-pytest tests/test_database.py -v
+pytest user_service/tests/test_database.py -v
 
 # Test service endpoints
-pytest tests/test_service.py -v
+pytest user_service/tests/test_service.py -v
 ```
+
+**Note:** Tests use mocked authentication. Authentication is enabled for production endpoints.
+
+---
+
+## Helper Scripts
+
+The service includes several helper scripts for development and testing:
+
+### get_token.py
+
+Requests a JWT token from Keycloak and validates it.
+
+```bash
+python get_token.py
+```
+
+**Features:**
+- Requests token using password grant
+- Decodes token payload (unverified)
+- Validates token signature using Keycloak's JWKS
+- Displays full token information
+
+### test_auth_endpoint.py
+
+Tests the `/auth/jwt` endpoint with a real token.
+
+```bash
+python test_auth_endpoint.py
+```
+
+**What it does:**
+1. Gets a token from Keycloak
+2. Makes authenticated request to `/auth/jwt`
+3. Displays the decoded JWT payload returned by the service
+
+### setup-secrets.sh
+
+Creates Kubernetes secrets for Keycloak configuration.
+
+```bash
+./setup-secrets.sh
+```
+
+---
+
+## Troubleshooting
+
+### Self-Signed Certificates
+
+If you're using self-signed certificates in development, set `INSECURE=true`:
+
+```bash
+export INSECURE=true
+```
+
+This will disable SSL certificate verification. **Never use this in production.**
+
+### Token Validation Errors
+
+If you see "Failed to fetch Keycloak public keys":
+1. Check `KEYCLOAK_URL` and `KEYCLOAK_REALM` are correct
+2. Verify Keycloak is accessible from your service
+3. Check if `INSECURE=true` is needed for self-signed certs
+
+### Common Issues
+
+- **404 on `/realms/{realm}/protocol/openid-connect/certs`**: Wrong Keycloak URL or realm name
+- **SSL Certificate Verification Error**: Set `INSECURE=true` for dev with self-signed certs
+- **401 Unauthorized**: Token expired or invalid, get a new token
+- **503 Service Unavailable**: Cannot reach Keycloak, check network/URL
+
+---
+
+## API Endpoints
+
+### Public Endpoints
+
+- `GET /health` - Health check
+- `GET /docs` - OpenAPI documentation
+
+### Authenticated Endpoints
+
+All endpoints below require a valid JWT Bearer token:
+
+- `GET /auth/jwt` - Returns decoded JWT payload
+- `POST /users` - Create new user
+- `POST /user/add_balance` - Add balance to user account
+- `POST /user/set_status` - Update user active status
+- `POST /user/fetch_info` - Fetch user information
 
 **Note:** Authentication is currently commented out but should be enabled in production.
 

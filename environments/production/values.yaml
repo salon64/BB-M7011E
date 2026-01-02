@@ -53,6 +53,7 @@ userService:
   replicas: 3
   image: justingav/user-service
   tag: latest
+  insecure: "false"  # Strict SSL verification in production
   autoscaling:
     enabled: true
     minReplicas: 1

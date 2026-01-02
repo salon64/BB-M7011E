@@ -5,12 +5,19 @@ from app.models import UserCreate, addBalance, user_set_status_response, user_se
 from app.database import get_supabase
 from keycloak import KeycloakAdmin
 from app.config import settings
+from app.auth import require_auth
 import logging, traceback
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(name)s %(message)s')
 
 
 router = APIRouter()
+
+
+@router.get("/auth/jwt")
+async def get_decoded_jwt(token_data: dict = Depends(require_auth)):
+    """Return the decoded JWT payload for the current request."""
+    return token_data
 
 
 @router.get("/health")
@@ -34,7 +41,7 @@ async def health_check():
 async def create_user(
     request: UserCreate,
     supabase: Client = Depends(get_supabase),
-    #token_data: dict = Depends(require_admin),
+    # token_data: dict = Depends(require_admin),
     #user=Depends(keycloak.get_current_user),
 ):
     """
@@ -60,9 +67,10 @@ async def create_user(
         logger.error("Supabase error: %s", e)
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Supabase error: {e}")
-    
+    # FIXME if user creation fails in Keycloak, we should roll back the Supabase creation
     # Create user in Keycloak
     try:
+        logger.info("Creating Keycloak admin connection for realm: %s", settings.keycloak_realm)
         keycloak_admin = KeycloakAdmin(
             server_url=settings.keycloak_url,
             username=settings.keycloak_admin_user,
@@ -71,17 +79,23 @@ async def create_user(
             client_id="admin-cli",
             verify=False  # Set to True if using trusted SSL certs
         )
+        logger.info("Keycloak admin authenticated successfully")
+        
+        logger.info("Creating user in Keycloak: email=%s, first_name=%s, last_name=%s", 
+                    request.email, request.first_name, request.last_name)
         user_id = keycloak_admin.create_user({
             "email": request.email,
-            "username": request.email,
+            "username": request.card_id,
             "enabled": True,
             "firstName": request.first_name,
             "lastName": request.last_name,
             "credentials": [{"value": request.password, "type": "password"}]
         })
+        logger.info("User created in Keycloak with ID: %s", user_id)
         kc_result = {"status": "created", "user_id": user_id}
     except Exception as e:
         logger.error("Keycloak error: %s", e)
+        logger.error("Error type: %s", type(e).__name__)
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Keycloak error: {e}")
     
@@ -93,8 +107,8 @@ async def add_balance(
     user_id: str,
     amount: int,
     request: addBalance,
-    supabase: Client = Depends(get_supabase),
-    #user=Depends(keycloak.get_current_user),
+    supabase: Client = Depends(get_supabase)
+    # user=Depends(keycloak.get_current_user),
 ):
     """
     Add balance to a user's account. Requires authentication.
