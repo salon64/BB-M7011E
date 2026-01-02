@@ -52,7 +52,7 @@ def main():
     insecure = os.getenv("KC_INSECURE", "true").lower() == "true"
     
     # API config
-    api_url = os.getenv("API_URL", "http://localhost:8080")
+    api_url = os.getenv("API_URL", "https://user-service-dev.ronstad.se")
     
     print("="*80)
     print("Getting token from Keycloak...")
