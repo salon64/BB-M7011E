@@ -2,14 +2,15 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))  # Add repo root for common
 import pytest
 import jwt as pyjwt
 from fastapi import HTTPException
-from app import auth as auth_module
+import common.auth as auth_module
 from main import app
 from fastapi.testclient import TestClient
 from app.database import get_supabase
-from app.auth import require_auth
+from common.auth import require_auth
 from unittest.mock import Mock, patch
 from jwt.exceptions import PyJWKClientConnectionError
 

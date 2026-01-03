@@ -22,6 +22,9 @@ app:
   email: jusgav-1@student.ltu.se
   environment: Development
   message: "Hello from Development Environment!"
+  keycloakUrl: "http://keycloak:8080"
+  keycloakRealm: "BB"
+  insecure: "true"
 
 # Item Service Configuration
 itemService:
@@ -46,6 +49,9 @@ itemService:
   environment: Development
   domain: item-service-dev.ltu-m7011e-10.se
   message: "Hello from Item Service - Development!"
+  keycloakUrl: "http://keycloak:8080"
+  keycloakRealm: "BB"
+  insecure: "true"
 
 # User Service Configuration
 userService:
@@ -54,6 +60,8 @@ userService:
   image: justingav/user-service
   tag: latest
   pullPolicy: Always
+  keycloakUrl: "http://keycloak:8080"
+  keycloakRealm: "BB"
   insecure: "true"  # Accept self-signed certificates in dev
   autoscaling:
     enabled: true

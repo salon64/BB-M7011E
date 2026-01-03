@@ -38,9 +38,11 @@ spec:
         - name: PRODUCTS_SERVICE_URL
           value: "http://products-service:8001"
         - name: KEYCLOAK_URL
-          value: "https://keycloak-dev.ltu-m7011e-10.se"
+          value: "{{ .Values.itemService.keycloakUrl | default \"http://keycloak:8080\" }}"
         - name: KEYCLOAK_REALM
-          value: "BBosch"
+          value: "{{ .Values.itemService.keycloakRealm | default \"BB\" }}"
+        - name: INSECURE
+          value: "{{ .Values.itemService.insecure | default \"false\" }}"
         livenessProbe:
           httpGet:
             path: /health

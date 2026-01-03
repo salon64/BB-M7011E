@@ -16,6 +16,10 @@ ENV VIRTUAL_ENV=/home/appuser/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
+# Copy and install common package first
+COPY common /app/common
+RUN pip install --no-cache-dir /app/common
+
 # Install dependencies into the virtual environment
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

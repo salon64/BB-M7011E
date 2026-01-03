@@ -22,6 +22,9 @@ app:
   email: jusgav-1@student.ltu.se
   environment: Staging
   message: "Hello from Staging Environment - Pre-Production Testing"
+  keycloakUrl: "http://keycloak:8080"
+  keycloakRealm: "BB"
+  insecure: "false"
 
 # Item Service Configuration
 itemService:
@@ -46,6 +49,9 @@ itemService:
   email: jusgav-1@student.ltu.se
   environment: Staging
   message: "Hello from Item Service - Staging!"
+  keycloakUrl: "http://keycloak:8080"
+  keycloakRealm: "BB"
+  insecure: "false"
 
 # User Service Configuration
 userService:
@@ -53,6 +59,8 @@ userService:
   replicas: 1
   image: justingav/user-service
   tag: latest
+  keycloakUrl: "http://keycloak:8080"
+  keycloakRealm: "BB"
   insecure: "false"  # Use proper SSL certificates in staging
   autoscaling:
     enabled: true

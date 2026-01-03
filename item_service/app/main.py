@@ -4,7 +4,7 @@ from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field, validator
 from typing import Optional
 from .database import get_supabase_client
-from .auth import require_auth, require_admin
+from common.auth import require_auth, require_admin
 from prometheus_client import (
     Counter,
     Histogram,

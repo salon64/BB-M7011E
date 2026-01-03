@@ -22,6 +22,9 @@ app:
   email: jusgav-1@student.ltu.se
   environment: Production
   message: "Hello from Production Environment - Live Site"
+  keycloakUrl: "http://keycloak:8080"
+  keycloakRealm: "BB"
+  insecure: "false"
 
 # Item Service Configuration
 itemService:
@@ -46,6 +49,9 @@ itemService:
   email: jusgav-1@student.ltu.se
   environment: Production
   message: "Hello from Item Service - Production!"
+  keycloakUrl: "http://keycloak:8080"
+  keycloakRealm: "BB"
+  insecure: "false"
 
 # User Service Configuration
 userService:
@@ -53,6 +59,8 @@ userService:
   replicas: 3
   image: justingav/user-service
   tag: latest
+  keycloakUrl: "http://keycloak:8080"
+  keycloakRealm: "BB"
   insecure: "false"  # Strict SSL verification in production
   autoscaling:
     enabled: true

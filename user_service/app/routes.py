@@ -5,7 +5,7 @@ from app.models import UserCreate, addBalance, user_set_status_response, user_se
 from app.database import get_supabase
 from keycloak import KeycloakAdmin
 from app.config import settings
-from app.auth import require_auth
+from common.auth import require_auth
 import logging, traceback
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(name)s %(message)s')

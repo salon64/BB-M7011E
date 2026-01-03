@@ -3,6 +3,7 @@ from pathlib import Path
 
 # Adding parent directory (user_service) to the path so imports work
 sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))  # Add repo root for common
 
 import pytest
 from fastapi.testclient import TestClient
@@ -10,7 +11,7 @@ from unittest.mock import Mock, patch
 from postgrest.exceptions import APIError
 from main import app
 from app.database import get_supabase
-from app.auth import require_auth
+from common.auth import require_auth
 
 
 @pytest.fixture

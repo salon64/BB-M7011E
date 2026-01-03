@@ -33,9 +33,9 @@ spec:
                 name: supabase-secret
                 key: SUPABASE_KEY
           - name: KEYCLOAK_URL
-            value: "http://keycloak:8080"
+            value: "{{ .Values.userService.keycloakUrl | default \"http://keycloak:8080\" }}"
           - name: KEYCLOAK_REALM
-            value: "BB"
+            value: "{{ .Values.userService.keycloakRealm | default \"BB\" }}"
           - name: KEYCLOAK_ADMIN_USER
             valueFrom:
               secretKeyRef:
@@ -59,7 +59,7 @@ spec:
           - name: KEYCLOAK_CALLBACK_URI
             value: "http://user-service:8004/callback"
           - name: INSECURE
-            value: "{{ .Values.userService.insecure | default "false" }}"
+            value: "{{ .Values.userService.insecure | default \"false\" }}"
         livenessProbe:
           httpGet:
             path: /health
