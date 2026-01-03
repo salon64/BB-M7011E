@@ -22,9 +22,9 @@ def mock_auth():
     def mock_auth_dependency():
         return {
             "sub": "test-user-id",
-            "preferred_username": "testuser",
+            "preferred_username": "12345",  # card_id matching test data
             "email": "test@example.com",
-            "realm_access": {"roles": ["user"]},
+            "realm_access": {"roles": ["user", "bb_admin"]},  # Add bb_admin role for tests
         }
 
     app.dependency_overrides[require_auth] = mock_auth_dependency
