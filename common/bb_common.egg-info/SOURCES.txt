@@ -1,0 +1,9 @@
+README.md
+pyproject.toml
+bb_common.egg-info/PKG-INFO
+bb_common.egg-info/SOURCES.txt
+bb_common.egg-info/dependency_links.txt
+bb_common.egg-info/requires.txt
+bb_common.egg-info/top_level.txt
+common/__init__.py
+common/auth.py

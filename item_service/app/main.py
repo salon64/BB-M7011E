@@ -4,7 +4,7 @@ from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field, validator
 from typing import Optional
 from .database import get_supabase_client
-from .auth import require_auth, require_admin
+from common.auth import require_auth, require_admin
 from prometheus_client import (
     Counter,
     Histogram,
@@ -274,20 +274,6 @@ async def update_item(item_id: str, item_update: ItemUpdate):
     finally:
         duration = time.time() - start_time
         db_operation_duration.labels(operation="update").observe(duration)
-
-
-# Get current user info
-@app.get("/auth/me")
-async def get_current_user(token_data: dict = Depends(require_auth)):
-    """Get information about the currently authenticated user"""
-    return {
-        "user_id": token_data.get("sub"),
-        "username": token_data.get("preferred_username"),
-        "email": token_data.get("email"),
-        "roles": token_data.get("realm_access", {}).get("roles", []),
-        "service": "item-service",
-    }
-
 
 # Delete item (soft delete by setting active=False)
 @app.delete("/items/{item_id}", status_code=204)

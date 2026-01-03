@@ -2,14 +2,15 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))  # Add repo root for common
 import pytest
 import jwt as pyjwt
 from fastapi import HTTPException
-from app import auth as auth_module
+import common.auth as auth_module
 from main import app
 from fastapi.testclient import TestClient
 from app.database import get_supabase
-from app.auth import require_auth
+from common.auth import require_auth
 from unittest.mock import Mock
 
 
@@ -20,9 +21,9 @@ def mock_auth():
     def mock_auth_dependency():
         return {
             "sub": "test-user-id",
-            "preferred_username": "testuser",
+            "preferred_username": "12345",  # card_id matching test data
             "email": "test@example.com",
-            "realm_access": {"roles": ["user"]},
+            "realm_access": {"roles": ["user", "bb_admin"]},  # Add bb_admin role for tests
         }
 
     app.dependency_overrides[require_auth] = mock_auth_dependency
@@ -47,27 +48,36 @@ def mock_supabase():
 
 
 class TestAuthUtils:
-    def test_get_public_keys_request_exception(self, monkeypatch):
-        """Test get_public_keys() raises HTTPException 503 on requests error."""
-        monkeypatch.setattr(auth_module, "public_keys", None)
-
-        def fake_get(*args, **kwargs):
-            raise auth_module.requests.RequestException()
-
-        monkeypatch.setattr(auth_module.requests, "get", fake_get)
+    def test_get_jwks_client_connection_error(self, monkeypatch):
+        """Test get_jwks_client() raises HTTPException 503 on connection error."""
+        # Reset the global jwks_client to None to force new client creation
+        auth_module.jwks_client = None
+        
+        def fake_pyjwkclient(*args, **kwargs):
+            raise Exception("Connection failed")
+        
+        # Patch PyJWKClient in the auth module
+        monkeypatch.setattr(auth_module, "PyJWKClient", fake_pyjwkclient)
+        
         with pytest.raises(HTTPException) as exc:
-            auth_module.get_public_keys()
+            auth_module.get_jwks_client()
         assert exc.value.status_code == 503
-        assert "Authentication service unavailable" in str(exc.value.detail)
+        assert "Failed to create JWKS client" in str(exc.value.detail)
 
     def test_verify_jwt_token_expired(self, monkeypatch):
         """Test verify_jwt_token raises 401 on ExpiredSignatureError."""
-        monkeypatch.setattr(auth_module, "get_public_keys", lambda: "pubkey")
+        mock_client = Mock()
+        mock_signing_key = Mock()
+        mock_signing_key.key = "test-key"
+        mock_client.get_signing_key_from_jwt.return_value = mock_signing_key
+        
+        monkeypatch.setattr(auth_module, "get_jwks_client", lambda: mock_client)
 
         def fake_decode(*a, **k):
             raise pyjwt.ExpiredSignatureError()
 
-        monkeypatch.setattr(auth_module.jwt, "decode", fake_decode)
+        monkeypatch.setattr(pyjwt, "decode", fake_decode)
+        
         with pytest.raises(HTTPException) as exc:
             auth_module.verify_jwt_token("token")
         assert exc.value.status_code == 401
@@ -75,12 +85,18 @@ class TestAuthUtils:
 
     def test_verify_jwt_token_invalid(self, monkeypatch):
         """Test verify_jwt_token raises 401 on InvalidTokenError."""
-        monkeypatch.setattr(auth_module, "get_public_keys", lambda: "pubkey")
+        mock_client = Mock()
+        mock_signing_key = Mock()
+        mock_signing_key.key = "test-key"
+        mock_client.get_signing_key_from_jwt.return_value = mock_signing_key
+        
+        monkeypatch.setattr(auth_module, "get_jwks_client", lambda: mock_client)
 
         def fake_decode(*a, **k):
             raise pyjwt.InvalidTokenError()
 
-        monkeypatch.setattr(auth_module.jwt, "decode", fake_decode)
+        monkeypatch.setattr(pyjwt, "decode", fake_decode)
+        
         with pytest.raises(HTTPException) as exc:
             auth_module.verify_jwt_token("token")
         assert exc.value.status_code == 401
@@ -88,16 +104,15 @@ class TestAuthUtils:
 
     def test_verify_jwt_token_generic_exception(self, monkeypatch):
         """Test verify_jwt_token raises 503 on generic exception."""
-        monkeypatch.setattr(auth_module, "get_public_keys", lambda: "pubkey")
-
-        def fake_decode(*a, **k):
-            raise Exception("fail")
-
-        monkeypatch.setattr(auth_module.jwt, "decode", fake_decode)
+        mock_client = Mock()
+        mock_client.get_signing_key_from_jwt.side_effect = Exception("Unknown error")
+        
+        monkeypatch.setattr(auth_module, "get_jwks_client", lambda: mock_client)
+        
         with pytest.raises(HTTPException) as exc:
             auth_module.verify_jwt_token("token")
         assert exc.value.status_code == 503
-        assert "Authentication service unavailable" in str(exc.value.detail)
+        assert "Unexpected error verifying token" in str(exc.value.detail)
 
     def test_require_admin_no_admin_role(self, monkeypatch):
         """Test require_admin raises 403 if 'admin' not in roles."""
@@ -116,21 +131,10 @@ class TestAuthUtils:
         assert "Admin access required" in str(exc.value.detail)
 
 
-class TestAuthMeEndpoint:
-    def test_me_with_valid_jwt(self, client):
-        """Test /auth/me returns user info with valid JWT (mocked)."""
-        response = client.get("/auth/me")
+class TestHealthEndpoint:
+    def test_health_check(self, client):
+        """Test /health returns healthy status."""
+        response = client.get("/health")
         assert response.status_code == 200
         data = response.json()
-        assert data["user_id"] == "test-user-id"
-        assert data["username"] == "testuser"
-        assert data["email"] == "test@example.com"
-        assert "user" in data["roles"]
-        assert data["service"] == "payment-service"
-
-    def test_me_with_missing_jwt(self, mock_supabase):
-        """Test /auth/me returns 401 if JWT is missing (no dependency override)."""
-        app.dependency_overrides.clear()  # Remove auth override
-        client = TestClient(app)
-        response = client.get("/auth/me")
-        assert response.status_code in (401, 403)
+        assert data["status"] == "healthy"

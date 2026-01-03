@@ -24,6 +24,8 @@ spec:
         - --hostname-strict=false
         - --proxy=edge
         env:
+        - name: PROXY_ADDRESS_FORWARDING
+          value: "true"
         - name: KC_DB
           value: {{ .Values.keycloak.database.vendor }}
         - name: KC_DB_URL

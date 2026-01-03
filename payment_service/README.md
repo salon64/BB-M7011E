@@ -129,7 +129,7 @@ For this information adhere to the README.md present in the database directory o
 
 1. Build the docker image with the appropriate sys architecture and Push the image to the specified Docker Hub account:
     ```bash
-    docker buildx build --platform linux/amd64,linux/arm64 -t justingav/payment-service:latest --push 
+    docker buildx build --platform linux/amd64,linux/arm64 -t justingav/payment-service:latest --push . 
     ```
 2. Navigate to the k8s directory and run the following command to reload the deployment file:
     ```bash
