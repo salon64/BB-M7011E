@@ -12,6 +12,7 @@ router = APIRouter()
 async def health_check():
     return {"status": "healthy"}
 
+
 @router.post("/payments/debit", response_model=PaymentResponse)
 async def debit_payment(
     request: PaymentRequest,
@@ -33,7 +34,7 @@ async def debit_payment(
 
     """
 
-    if request.user_id != int(user_data.get("preferred_username", -1)) and not "bb_admin" in user_data.get("realm_access", {}).get("roles", []):
+    if request.user_id != int(user_data.get("preferred_username", -1)) and "bb_admin" not in user_data.get("realm_access", {}).get("roles", []):
         raise HTTPException(status_code=403, detail="Cannot debit another user's account")
     try:
         result = supabase.rpc(

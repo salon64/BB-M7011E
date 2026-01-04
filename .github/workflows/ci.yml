@@ -141,8 +141,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          cd ${{ matrix.service }}
-          docker build -t ${{ matrix.image_name }}:test .
+          docker build -t ${{ matrix.image_name }}:test -f ${{ matrix.service }}/Dockerfile .
 
       - name: Run Trivy vulnerability scanner (image)
         uses: aquasecurity/trivy-action@master

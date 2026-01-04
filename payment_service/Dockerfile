@@ -12,7 +12,7 @@ COPY common /app/common
 RUN pip install --no-cache-dir /app/common
 
 # Install dependencies into the virtual environment
-COPY requirements.txt .
+COPY payment_service/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Create the production image
@@ -23,7 +23,7 @@ WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
 
 # Copy application code
-COPY . .
+COPY payment_service/ .
 
 # Activate the virtual environment
 ENV PATH="/opt/venv/bin:$PATH"
