@@ -18,21 +18,13 @@ app:
     limits:
       memory: "512Mi"
       cpu: "500m"
-
-# Staging domain - change to your assigned domain
-domain: payment-service-staging.ltu-m7011e-10.se
-# Email for Let's Encrypt certificates
-email: jusgav-1@student.ltu.se
-
-# Environment identifier
-environment: Staging
-
-message: "Hello from Staging Environment - Pre-Production Testing"
-
-# Ingress configuration
-ingress:
-  enabled: true
-  certIssuer: letsencrypt-staging
+  domain: payment-service-staging.ltu-m7011e-10.se
+  email: jusgav-1@student.ltu.se
+  environment: Staging
+  message: "Hello from Staging Environment - Pre-Production Testing"
+  keycloakUrl: "http://keycloak:8080"
+  keycloakRealm: "BB"
+  insecure: "false"
 
 # Item Service Configuration
 itemService:
@@ -53,8 +45,42 @@ itemService:
     limits:
       memory: "512Mi"
       cpu: "500m"
-
-  # Item service domain
   domain: item-service-staging.ltu-m7011e-10.se
-
+  email: jusgav-1@student.ltu.se
+  environment: Staging
   message: "Hello from Item Service - Staging!"
+  keycloakUrl: "http://keycloak:8080"
+  keycloakRealm: "BB"
+  insecure: "false"
+
+# User Service Configuration
+userService:
+  name: user-service-staging
+  replicas: 1
+  image: justingav/user-service
+  tag: latest
+  keycloakUrl: "http://keycloak:8080"
+  keycloakRealm: "BB"
+  insecure: "false"  # Use proper SSL certificates in staging
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPU: 70
+    targetMemory: 80
+  resources:
+    requests:
+      memory: "125Mi"
+      cpu: "50m"
+    limits:
+      memory: "250Mi"
+      cpu: "200m"
+  domain: user-service-staging.ltu-m7011e-10.se
+  email: jusgav-1@student.ltu.se
+  environment: Staging
+  message: "Hello from User Service - Staging!"
+
+# Ingress configuration
+ingress:
+  enabled: true
+  certIssuer: letsencrypt-staging

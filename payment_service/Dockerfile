@@ -7,8 +7,12 @@ ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
+# Copy and install common package first
+COPY common /app/common
+RUN pip install --no-cache-dir /app/common
+
 # Install dependencies into the virtual environment
-COPY requirements.txt .
+COPY payment_service/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Create the production image
@@ -19,7 +23,7 @@ WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
 
 # Copy application code
-COPY . .
+COPY payment_service/ .
 
 # Activate the virtual environment
 ENV PATH="/opt/venv/bin:$PATH"

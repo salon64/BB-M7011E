@@ -18,21 +18,13 @@ app:
     limits:
       memory: "250Mi"
       cpu: "200m"
-
-# Development domain
-domain: payment-service-dev.ltu-m7011e-10.se
-# Email for Let's Encrypt certificates
-email: jusgav-1@student.ltu.se
-
-# Environment identifier
-environment: Development
-
-message: "Hello from Development Environment!"
-
-# Ingress configuration
-ingress:
-  enabled: true
-  certIssuer: letsencrypt-staging
+  domain: payment-service-dev.ltu-m7011e-10.se
+  email: jusgav-1@student.ltu.se
+  environment: Development
+  message: "Hello from Development Environment!"
+  keycloakUrl: "http://keycloak:8080"
+  keycloakRealm: "BB"
+  insecure: "true"
 
 # Item Service Configuration
 itemService:
@@ -53,8 +45,43 @@ itemService:
     limits:
       memory: "250Mi"
       cpu: "200m"
-
-  # Item service domain
+  email: jusgav-1@student.ltu.se
+  environment: Development
   domain: item-service-dev.ltu-m7011e-10.se
-
   message: "Hello from Item Service - Development!"
+  keycloakUrl: "http://keycloak:8080"
+  keycloakRealm: "BB"
+  insecure: "true"
+
+# User Service Configuration
+userService:
+  name: user-service-dev
+  replicas: 1
+  image: justingav/user-service
+  tag: latest
+  pullPolicy: Always
+  keycloakUrl: "http://keycloak:8080"
+  keycloakRealm: "BB"
+  insecure: "true"  # Accept self-signed certificates in dev
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPU: 70
+    targetMemory: 80
+  resources:
+    requests:
+      memory: "125Mi"
+      cpu: "50m"
+    limits:
+      memory: "250Mi"
+      cpu: "200m"
+  email: jusgav-1@student.ltu.se
+  environment: Development
+  domain: user-service-dev.ltu-m7011e-10.se
+  message: "Hello from User Service - Development!"
+
+# Ingress configuration
+ingress:
+  enabled: true
+  certIssuer: letsencrypt-staging

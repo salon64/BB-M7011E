@@ -45,8 +45,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd ${{ matrix.service }}
           pip install --upgrade pip
+          pip install ./common
+          cd ${{ matrix.service }}
           pip install -r requirements.txt
 
       - name: Run unit tests
@@ -140,8 +141,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          cd ${{ matrix.service }}
-          docker build -t ${{ matrix.image_name }}:test .
+          docker build -t ${{ matrix.image_name }}:test -f ${{ matrix.service }}/Dockerfile .
 
       - name: Run Trivy vulnerability scanner (image)
         uses: aquasecurity/trivy-action@master

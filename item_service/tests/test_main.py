@@ -1,9 +1,15 @@
 # tests/test_main.py
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))  # Add repo root for common
+
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import Mock, patch
 from app.main import app
-from app.auth import require_auth, require_admin
+from common.auth import require_auth, require_admin
 
 client = TestClient(app)
 
