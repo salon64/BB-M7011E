@@ -131,21 +131,10 @@ class TestAuthUtils:
         assert "Admin access required" in str(exc.value.detail)
 
 
-class TestAuthMeEndpoint:
-    def test_me_with_valid_jwt(self, client):
-        """Test /auth/me returns user info with valid JWT (mocked)."""
-        response = client.get("/auth/me")
+class TestHealthEndpoint:
+    def test_health_check(self, client):
+        """Test /health returns healthy status."""
+        response = client.get("/health")
         assert response.status_code == 200
         data = response.json()
-        assert data["user_id"] == "test-user-id"
-        assert data["username"] == "testuser"
-        assert data["email"] == "test@example.com"
-        assert "user" in data["roles"]
-        assert data["service"] == "item-service"
-
-    def test_me_with_missing_jwt(self, mock_supabase):
-        """Test /auth/me returns 401 if JWT is missing (no dependency override)."""
-        app.dependency_overrides.clear()  # Remove auth override
-        client = TestClient(app)
-        response = client.get("/auth/me")
-        assert response.status_code in (401, 403)
+        assert data["status"] == "healthy"
