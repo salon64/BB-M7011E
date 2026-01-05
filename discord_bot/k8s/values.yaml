@@ -6,6 +6,14 @@ image:
 commandPrefix: "!"
 logLevel: "INFO"
 
+keycloak:
+  url: "https://keycloak"
+  realm: "BB"
+  discordClientId: "discord-to-user"
+
+supabase:
+  url: ""  # Set in environment-specific values or secrets
+
 services:
   userService: "http://user-service"
   paymentService: "http://payment-service"
