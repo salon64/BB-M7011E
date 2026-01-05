@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: discord-bot-config
+data:
+  COMMAND_PREFIX: "{{ .Values.commandPrefix }}"
+  USER_SERVICE_URL: "{{ .Values.services.userService }}"
+  PAYMENT_SERVICE_URL: "{{ .Values.services.paymentService }}"
+  ITEM_SERVICE_URL: "{{ .Values.services.itemService }}"
+  LOG_LEVEL: "{{ .Values.logLevel }}"

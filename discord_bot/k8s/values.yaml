@@ -1,0 +1,23 @@
+image:
+  repository: justingav/discord-bot
+  tag: latest
+  pullPolicy: Always
+
+commandPrefix: "!"
+logLevel: "INFO"
+
+# Discord token - should be overridden in environment-specific values
+discordToken: ""
+
+services:
+  userService: "http://user-service"
+  paymentService: "http://payment-service"
+  itemService: "http://item-service"
+
+resources:
+  limits:
+    cpu: "500m"
+    memory: "256Mi"
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
