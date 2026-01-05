@@ -12,7 +12,7 @@ keycloak:
   discordClientId: "discord-to-user"
 
 supabase:
-  url: ""  # Set in environment-specific values or secrets
+  url: "http://supabase:8000"
 
 services:
   userService: "http://user-service"
