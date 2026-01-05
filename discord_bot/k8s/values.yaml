@@ -14,6 +14,8 @@ keycloak:
 supabase:
   url: "http://supabase:8000"
 
+insecure: true
+
 services:
   userService: "http://user-service"
   paymentService: "http://payment-service"

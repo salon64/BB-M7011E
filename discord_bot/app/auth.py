@@ -41,14 +41,13 @@ def get_user_jwt(discord_id: str) -> str | None:
             verify=not INSECURE,
             timeout=15
         )
-        
+        if INSECURE:
+            logger.warning("INSECURE mode enabled: skipping SSL verification for Keycloak requests")
         if resp.status_code != 200:
             logger.error(f"Failed to get token from Keycloak: {resp.status_code} - {resp.text}")
             return None
-        
         token_data = resp.json()
         return token_data.get("access_token")
-        
     except requests.RequestException as e:
         logger.error(f"Request to Keycloak failed: {e}")
         return None

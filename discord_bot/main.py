@@ -109,7 +109,7 @@ async def buy(ctx: commands.Context, item_id: Optional[int] = None) -> None:
 @bot.command(name="auth_test")
 async def auth_test(ctx: commands.Context) -> None:
     """Test authentication use for dbg"""
-    token = get_user_jwt(str(ctx.message.author.id))
+    token = get_user_jwt(str(ctx.message.author))
     await ctx.send(f"🔐 Authentication test {token}")
 
 
