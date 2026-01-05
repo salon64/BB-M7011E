@@ -7,7 +7,7 @@ commandPrefix: "!"
 logLevel: "INFO"
 
 keycloak:
-  url: "https://keycloak"
+  url: "http://keycloak:8080"
   realm: "BB"
   discordClientId: "discord-to-user"
 

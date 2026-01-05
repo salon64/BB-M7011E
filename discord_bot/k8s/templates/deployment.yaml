@@ -43,7 +43,7 @@ spec:
                   name: supabase-secret
                   key: SUPABASE_KEY
             - name: INSECURE
-              value: "{{ .Values.insecure | default \"false\" }}"
+              value: '{{ .Values.insecure | default "false" }}'
             - name: COMMAND_PREFIX
               value: "{{ .Values.commandPrefix }}"
             - name: USER_SERVICE_URL
