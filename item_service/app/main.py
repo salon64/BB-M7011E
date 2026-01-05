@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException, Query, Request, Depends
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field, validator
 from typing import Optional
-from .database import get_supabase_client
+from common.database import get_supabase_client
 from common.auth import require_auth, require_admin
 from prometheus_client import (
     Counter,

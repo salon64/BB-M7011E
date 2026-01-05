@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from supabase import Client
 from postgrest.exceptions import APIError
 from app.models import UserCreate, addBalance, user_set_status_response, user_set_status, fetch_user_info
-from app.database import get_supabase
+from common.database import get_supabase
 from keycloak import KeycloakAdmin
 from app.config import settings
 from common.auth import require_auth

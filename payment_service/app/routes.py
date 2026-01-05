@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from supabase import Client
 from postgrest.exceptions import APIError
 from app.models import PaymentResponse, PaymentRequest
-from app.database import get_supabase
+from common.database import get_supabase
 from common.auth import require_auth
 
 router = APIRouter()

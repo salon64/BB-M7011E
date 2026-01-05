@@ -11,7 +11,7 @@ from unittest.mock import Mock
 from uuid import UUID
 from postgrest.exceptions import APIError
 from main import app
-from app.database import get_supabase
+from common.database import get_supabase
 from common.auth import require_auth
 
 

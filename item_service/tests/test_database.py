@@ -1,4 +1,10 @@
-from app import database
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))  # Add repo root for common
+
+from common import database
 
 
 def test_get_supabase_client(monkeypatch):
@@ -9,6 +15,7 @@ def test_get_supabase_client(monkeypatch):
         pass
 
     monkeypatch.setattr(database, "create_client", lambda url, key: DummyClient())
+    monkeypatch.setattr(database, "_supabase_client", None)
 
     client = database.get_supabase_client()
     assert isinstance(client, DummyClient)

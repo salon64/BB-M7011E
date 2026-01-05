@@ -9,7 +9,7 @@ from fastapi import HTTPException
 import common.auth as auth_module
 from app.main import app
 from fastapi.testclient import TestClient
-from app.database import get_supabase_client
+from common.database import get_supabase_client
 from common.auth import require_auth
 from unittest.mock import Mock
 
