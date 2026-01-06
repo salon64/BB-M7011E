@@ -13,12 +13,13 @@ DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID", "discord-to-user")
 DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", "")
 INSECURE = os.getenv("INSECURE", "false").lower() == "true"
 
-# JWT cache settings (default: 1 day = 86400 seconds)
-JWT_CACHE_TTL = int(os.getenv("JWT_CACHE_TTL", "86400"))
+# JWT cache settings - max TTL from env var (default: 1 day = 86400 seconds)
+# Actual TTL will be the minimum of token's expires_in and this value
+JWT_MAX_CACHE_TTL = int(os.getenv("JWT_CACHE_TTL", "86400"))
 
 # Global JWT cache
 _discord_jwt: str | None = None
-_discord_jwt_timestamp: float = 0.0
+_discord_jwt_expiry: float = 0.0  # Absolute expiry timestamp
 
 
 class UserNotLinkedError(Exception):
@@ -32,14 +33,15 @@ def get_discord_jwt() -> str | None:
     """
     Get a JWT for the Discord bot client from Keycloak.
     Uses a cached token if still valid, otherwise requests a new one.
+    Token TTL is based on Keycloak's expires_in, capped by JWT_MAX_CACHE_TTL.
     Returns None if token request fails.
     """
-    global _discord_jwt, _discord_jwt_timestamp
+    global _discord_jwt, _discord_jwt_expiry
     
     current_time = time.time()
     
-    # Check if cached JWT is still valid
-    if _discord_jwt and (current_time - _discord_jwt_timestamp) < JWT_CACHE_TTL:
+    # Check if cached JWT is still valid (with 30 second buffer)
+    if _discord_jwt and current_time < (_discord_jwt_expiry - 30):
         logger.debug("Using cached Discord JWT")
         return _discord_jwt
     
@@ -69,8 +71,13 @@ def get_discord_jwt() -> str | None:
         
         token_data = resp.json()
         _discord_jwt = token_data.get("access_token")
-        _discord_jwt_timestamp = current_time
-        logger.info("Successfully obtained new Discord JWT from Keycloak")
+        
+        # Use expires_in from token, capped by max TTL
+        expires_in = token_data.get("expires_in", JWT_MAX_CACHE_TTL)
+        effective_ttl = min(expires_in, JWT_MAX_CACHE_TTL)
+        _discord_jwt_expiry = current_time + effective_ttl
+        
+        logger.info(f"Successfully obtained new Discord JWT from Keycloak (expires in {effective_ttl}s)")
         return _discord_jwt
         
     except requests.RequestException as e:

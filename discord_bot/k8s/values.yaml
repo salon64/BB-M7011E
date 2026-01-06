@@ -16,8 +16,8 @@ supabase:
 
 insecure: true
 
-# JWT cache TTL in seconds (default: 1 day)
-jwtCacheTtl: "86400"
+# JWT cache max TTL in seconds (capped at this value, default: 1 day)
+jwtMaxCacheTtl: "86400"
 
 # URL for users to link their Discord account
 accountLinkUrl: "https://example.com/link-account"

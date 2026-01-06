@@ -45,7 +45,7 @@ spec:
             - name: INSECURE
               value: '{{ .Values.insecure | default "false" }}'
             - name: JWT_CACHE_TTL
-              value: "{{ .Values.jwtCacheTtl }}"
+              value: "{{ .Values.jwtMaxCacheTtl }}"
             - name: ACCOUNT_LINK_URL
               value: "{{ .Values.accountLinkUrl }}"
             - name: COMMAND_PREFIX
