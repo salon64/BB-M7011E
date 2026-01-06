@@ -1,5 +1,0 @@
-apiVersion: v2
-name: item-service
-description: An item microservice
-version: 1.0.0
-appVersion: "1.0"
