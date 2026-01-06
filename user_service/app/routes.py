@@ -183,8 +183,15 @@ async def fetch_user_info(
     """
     Fetch user information by user ID.
     """
-
-    if request.user_id != int(user_data.get("preferred_username", -1)) and not "bb_admin" in user_data.get("realm_access", {}).get("roles", []):
+    logger = logging.getLogger("routes")
+    # Try to get the numeric user ID from preferred_username
+    try:
+        current_user_id = int(user_data.get("preferred_username", -1))
+    except (ValueError, TypeError):
+        current_user_id = -1
+    is_admin = "bb_admin" in user_data.get("realm_access", {}).get("roles", [])
+    if request.user_id != current_user_id and not is_admin:
+        logger.warning("Access denied: user_id=%s attempted to fetch info for user_id=%s", current_user_id, request.user_id)
         raise HTTPException(status_code=403, detail="Cannot fetch another user's information")
     try:
         result = supabase.rpc(
@@ -194,6 +201,10 @@ async def fetch_user_info(
             },
         ).execute()
         user_info = result.data
+        # Handle empty result
+        if not user_info:
+            logger.warning("User not found for user_id=%s", request.user_id)
+            raise HTTPException(status_code=404, detail="User not found")
         return {
             "first_name": user_info['first_name'],
             "last_name": user_info['last_name'],
@@ -201,12 +212,14 @@ async def fetch_user_info(
             "active": user_info['active'],
         }
     except APIError as e:
+        logger.error("APIError in fetch_user_info: %s", e, exc_info=True)
         error_msg = e.message.lower()
         if "user not found" in error_msg:
             raise HTTPException(status_code=404, detail="User not found")
         else:
             raise HTTPException(status_code=500, detail=f"Database error: {e.message}")
     except Exception as e:
+        logger.error("Unexpected error in fetch_user_info: %s", e, exc_info=True)
         raise HTTPException(
             status_code=500, detail=f"An unexpected error occurred: {str(e)}"
         )
