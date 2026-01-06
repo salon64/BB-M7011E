@@ -3,6 +3,7 @@ from supabase import Client
 from postgrest.exceptions import APIError
 from app.models import PaymentResponse, PaymentRequest
 from app.database import get_supabase
+from common.auth import require_auth
 
 router = APIRouter()
 
@@ -14,7 +15,9 @@ async def health_check():
 
 @router.post("/payments/debit", response_model=PaymentResponse)
 async def debit_payment(
-    request: PaymentRequest, supabase: Client = Depends(get_supabase)
+    request: PaymentRequest,
+    user_data: dict = Depends(require_auth),
+    supabase: Client = Depends(get_supabase),
 ):
     """Debits a specified amount from a user's account.
 
@@ -23,12 +26,16 @@ async def debit_payment(
 
     Args:
         request: A `PaymentRequest` object containing the user's ID and the item ID.
+        user_data: A dictionary containing authenticated user information.
         supabase: An injected Supabase client for database communication.
 
     Returns:
         A `PaymentResponse` object with the user's ID and their new balance.
 
     """
+
+    if request.user_id != int(user_data.get("preferred_username", -1)) and "bb_admin" not in user_data.get("realm_access", {}).get("roles", []):
+        raise HTTPException(status_code=403, detail="Cannot debit another user's account")
     try:
         result = supabase.rpc(
             "debit_user",

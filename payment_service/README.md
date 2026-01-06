@@ -129,7 +129,7 @@ For this information adhere to the README.md present in the database directory o
 
 1. Build the docker image with the appropriate sys architecture and Push the image to the specified Docker Hub account:
     ```bash
-    docker buildx build --platform linux/amd64,linux/arm64 -t justingav/payment-service:latest --push 
+    docker buildx build --platform linux/amd64,linux/arm64 -t justingav/payment-service:latest --push . 
     ```
 2. Navigate to the k8s directory and run the following command to reload the deployment file:
     ```bash
@@ -140,6 +140,27 @@ For this information adhere to the README.md present in the database directory o
     ```bash
     kubectl delete -f deployment.yaml && kubectl apply -f deployment.yaml
     ```
+### HPA 
+
+Check HPA status:
+```bash
+# Check HPA across all namespaces
+kubectl get hpa --all-namespaces
+
+# Detailed HPA information
+kubectl describe hpa payment-service-dev-hpa -n payment-service-dev
+
+# Monitor real-time scaling
+kubectl get hpa -n payment-service-dev -w
+```
+Resource usage monitoring:
+```bash
+# Check current CPU/memory usage
+kubectl top pods -n payment-service-dev
+
+# View pod resource requests/limits
+kubectl describe deployment payment-service-dev -n payment-service-dev
+```
 
 ---
 

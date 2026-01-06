@@ -75,27 +75,27 @@ def create_db(path: Path):
             # Insert sample user and item
             cur.execute(
                 "INSERT OR IGNORE INTO users (card_id, name, balance, active) VALUES (?, ?, ?, ?);",
-                ("1234567890", "alice", 500, 1)
+                ("1234567890", "alice", 500, 1),
             )
             cur.execute(
                 "INSERT OR IGNORE INTO items (id, name, price, barcode_id, active) VALUES (?, ?, ?, ?, ?);",
-                (i1, "apple", 100, "000001", 1)
+                (i1, "apple", 100, "000001", 1),
             )
             conn.commit()  # commit first so FK can see these rows
 
             # Insert transaction referencing the above rows
             cur.execute(
                 "INSERT INTO transaction_history (user_card_id, item_id, time) VALUES (?, ?, datetime('now'));",
-                ("1234567890", i1)
+                ("1234567890", i1),
             )
             conn.commit()
-
 
             print("Sample user card_id: 1234567890")
             print("Sample item id:", i1)
 
     finally:
         conn.close()
+
 
 if __name__ == "__main__":
     create_db(DB_PATH)
