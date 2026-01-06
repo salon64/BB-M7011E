@@ -4,7 +4,9 @@
 import os
 import logging
 import discord
-from app.auth import get_user_jwt
+import httpx
+from urllib.parse import urlencode
+from app.auth import get_user_card_id, get_discord_jwt, UserNotLinkedError
 from discord.ext import commands
 from dotenv import load_dotenv
 from typing import Optional
@@ -23,6 +25,7 @@ logger = logging.getLogger(__name__)
 # Bot configuration
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 COMMAND_PREFIX = os.getenv("COMMAND_PREFIX")
+ACCOUNT_LINK_URL = os.getenv("ACCOUNT_LINK_URL", "https://example.com/link-account")
 
 # API endpoints for other services
 USER_SERVICE_URL = os.getenv("USER_SERVICE_URL")
@@ -70,6 +73,15 @@ async def on_command_error(ctx: commands.Context, error: Exception) -> None:
         await ctx.send(f"❌ Missing required argument: `{error.param.name}`")
     elif isinstance(error, commands.MissingPermissions):
         await ctx.send("❌ You don't have permission to use this command.")
+    elif isinstance(error, commands.CommandInvokeError) and isinstance(error.original, UserNotLinkedError):
+        # User has not linked their Discord account
+        discord_user = str(ctx.message.author.id)
+        link_params = urlencode({"discord": discord_user})
+        link_url = f"{ACCOUNT_LINK_URL}?{link_params}"
+        await ctx.send(
+            f"❌ Your Discord account is not linked!\n"
+            f"🔗 Please link your account here: {link_url}"
+        )
     else:
         logger.error(f"Command error: {error}")
         await ctx.send("❌ An error occurred while processing your command.")
@@ -85,32 +97,166 @@ async def ping(ctx: commands.Context) -> None:
 
 @bot.command(name="balance")
 async def balance(ctx: commands.Context) -> None:
-    """Check your account balance (TODO: implement with user service)."""
-    # TODO: Integrate with user service to fetch balance
-    await ctx.send("💰 Balance check coming soon! This will integrate with the user service.")
+    """Check your account balance."""
+    discord_id = str(ctx.message.author.id)
+    card_id = get_user_card_id(discord_id)
+    jwt_token = get_discord_jwt()
+    
+    if not jwt_token:
+        await ctx.send("❌ Failed to authenticate with backend services.")
+        return
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                f"{USER_SERVICE_URL}/user/fetch_info",
+                json={"user_id": int(card_id)},
+                headers={"Authorization": f"Bearer {jwt_token}"},
+                timeout=10.0
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                await ctx.send(
+                    f"💰 **Account Info**\n"
+                    f"👤 Name: {data.get('first_name', 'N/A')} {data.get('last_name', '')}\n"
+                    f"💵 Balance: {data.get('balance', 0)} credits\n"
+                    f"✅ Active: {'Yes' if data.get('active') else 'No'}"
+                )
+            elif response.status_code == 404:
+                await ctx.send("❌ User not found in the system.")
+            else:
+                logger.error(f"User service error: {response.status_code} - {response.text}")
+                await ctx.send("❌ Failed to fetch balance. Please try again later.")
+        except httpx.RequestError as e:
+            logger.error(f"Request to user service failed: {e}")
+            await ctx.send("❌ Could not connect to user service.")
 
 
 @bot.command(name="items")
 async def items(ctx: commands.Context) -> None:
-    """List available items (TODO: implement with item service)."""
-    # TODO: Integrate with item service to list items
-    await ctx.send("📦 Item listing coming soon! This will integrate with the item service.")
+    """List available items for purchase."""
+    discord_id = str(ctx.message.author.id)
+    # Verify user is linked (will raise UserNotLinkedError if not)
+    get_user_card_id(discord_id)
+    jwt_token = get_discord_jwt()
+    
+    if not jwt_token:
+        await ctx.send("❌ Failed to authenticate with backend services.")
+        return
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                f"{ITEM_SERVICE_URL}/items",
+                params={"active": "true"},
+                headers={"Authorization": f"Bearer {jwt_token}"},
+                timeout=10.0
+            )
+            
+            if response.status_code == 200:
+                items_list = response.json()
+                if not items_list:
+                    await ctx.send("📦 No items available at the moment.")
+                    return
+                
+                # Format items list
+                items_text = "📦 **Available Items:**\n"
+                for item in items_list[:20]:  # Limit to 20 items
+                    items_text += f"  `{item['id']}` - **{item['name']}** - {item['price']} credits\n"
+                
+                if len(items_list) > 20:
+                    items_text += f"  ... and {len(items_list) - 20} more items"
+                
+                await ctx.send(items_text)
+            else:
+                logger.error(f"Item service error: {response.status_code} - {response.text}")
+                await ctx.send("❌ Failed to fetch items. Please try again later.")
+        except httpx.RequestError as e:
+            logger.error(f"Request to item service failed: {e}")
+            await ctx.send("❌ Could not connect to item service.")
 
 
 @bot.command(name="buy")
-async def buy(ctx: commands.Context, item_id: Optional[int] = None) -> None:
-    """Purchase an item (TODO: implement with payment service)."""
+async def buy(ctx: commands.Context, item_id: Optional[str] = None) -> None:
+    """Purchase an item by ID."""
     if item_id is None:
         await ctx.send(f"❌ Please specify an item ID. Usage: `{COMMAND_PREFIX}buy <item_id>`")
         return
-    # TODO: Integrate with payment service to process purchase
-    await ctx.send(f"🛒 Purchase functionality coming soon! Item ID: {item_id}")
+    
+    discord_id = str(ctx.message.author.id)
+    card_id = get_user_card_id(discord_id)
+    jwt_token = get_discord_jwt()
+    
+    if not jwt_token:
+        await ctx.send("❌ Failed to authenticate with backend services.")
+        return
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            # First, get item details to show what's being purchased
+            item_response = await client.get(
+                f"{ITEM_SERVICE_URL}/items/{item_id}",
+                headers={"Authorization": f"Bearer {jwt_token}"},
+                timeout=10.0
+            )
+            
+            if item_response.status_code == 404:
+                await ctx.send(f"❌ Item `{item_id}` not found.")
+                return
+            elif item_response.status_code != 200:
+                await ctx.send("❌ Failed to fetch item details.")
+                return
+            
+            item_data = item_response.json()
+            item_name = item_data.get("name", "Unknown")
+            item_price = item_data.get("price", 0)
+            
+            # Process the payment
+            payment_response = await client.post(
+                f"{PAYMENT_SERVICE_URL}/payments/debit",
+                json={"user_id": int(card_id), "item_id": item_id},
+                headers={"Authorization": f"Bearer {jwt_token}"},
+                timeout=10.0
+            )
+            
+            if payment_response.status_code == 200:
+                payment_data = payment_response.json()
+                new_balance = payment_data.get("new_balance", "N/A")
+                await ctx.send(
+                    f"✅ **Purchase Successful!**\n"
+                    f"🛒 Item: **{item_name}**\n"
+                    f"💵 Price: {item_price} credits\n"
+                    f"💰 New Balance: {new_balance} credits"
+                )
+            elif payment_response.status_code == 402:
+                await ctx.send(f"❌ Insufficient funds to purchase **{item_name}** ({item_price} credits).")
+            elif payment_response.status_code == 403:
+                await ctx.send("❌ Your account is not active. Please contact an administrator.")
+            elif payment_response.status_code == 404:
+                await ctx.send("❌ User not found in the payment system.")
+            else:
+                logger.error(f"Payment service error: {payment_response.status_code} - {payment_response.text}")
+                await ctx.send("❌ Payment failed. Please try again later.")
+        except httpx.RequestError as e:
+            logger.error(f"Request to services failed: {e}")
+            await ctx.send("❌ Could not connect to backend services.")
 
 @bot.command(name="auth_test")
 async def auth_test(ctx: commands.Context) -> None:
-    """Test authentication use for dbg"""
-    token = get_user_jwt(str(ctx.message.author))
-    await ctx.send(f"🔐 Authentication test {token}")
+    """Test authentication - returns user's card_id and bot JWT"""
+    discord_id = str(ctx.message.author.id)
+    card_id = get_user_card_id(discord_id)
+    jwt_token = get_discord_jwt()
+    
+    # Truncate JWT for display (show first 20 and last 10 chars)
+    jwt_display = f"{jwt_token[:20]}...{jwt_token[-10:]}" if jwt_token and len(jwt_token) > 30 else jwt_token
+    
+    await ctx.send(
+        f"🔐 Authentication test:\n"
+        f"📇 Card ID: `{card_id}`\n"
+        f"🎫 JWT: `{jwt_display}`"
+    )
 
 
 def main() -> None:

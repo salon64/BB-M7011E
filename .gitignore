@@ -10,3 +10,4 @@ supabase-service/supabase/
 
 # Environment files
 .env
+venv/

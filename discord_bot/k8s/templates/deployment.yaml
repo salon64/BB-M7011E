@@ -44,6 +44,10 @@ spec:
                   key: SUPABASE_KEY
             - name: INSECURE
               value: '{{ .Values.insecure | default "false" }}'
+            - name: JWT_CACHE_TTL
+              value: "{{ .Values.jwtCacheTtl }}"
+            - name: ACCOUNT_LINK_URL
+              value: "{{ .Values.accountLinkUrl }}"
             - name: COMMAND_PREFIX
               value: "{{ .Values.commandPrefix }}"
             - name: USER_SERVICE_URL

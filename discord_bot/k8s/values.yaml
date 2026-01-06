@@ -16,6 +16,12 @@ supabase:
 
 insecure: true
 
+# JWT cache TTL in seconds (default: 1 day)
+jwtCacheTtl: "86400"
+
+# URL for users to link their Discord account
+accountLinkUrl: "https://example.com/link-account"
+
 services:
   userService: "http://user-service"
   paymentService: "http://payment-service"
