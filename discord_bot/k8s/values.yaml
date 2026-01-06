@@ -23,9 +23,9 @@ jwtCacheTtl: "86400"
 accountLinkUrl: "https://example.com/link-account"
 
 services:
-  userService: "http://user-service"
-  paymentService: "http://payment-service"
-  itemService: "http://item-service"
+  userService: "http://user-service:8004"
+  paymentService: "http://payment-service:8002"
+  itemService: "http://item-service:8003"
 
 resources:
   limits:
