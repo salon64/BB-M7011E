@@ -10,9 +10,8 @@ metadata:
 # =============================================================================
 # SUPABASE SERVICE DEFINITION
 # =============================================================================
-# Backend Kubernetes Service pointing to Supabase
-# This can be an ExternalName service if Supabase is external,
-# or a regular ClusterIP if running Supabase in-cluster
+# ExternalName service pointing to Supabase in the 'bb' namespace
+# This allows the app namespace to route to Supabase running in bb
 apiVersion: v1
 kind: Service
 metadata:
@@ -21,18 +20,13 @@ metadata:
   labels:
     app: supabase
 spec:
-  # Option 1: If Supabase is external (e.g., supabase.com hosted)
-  # Uncomment and modify:
-  # type: ExternalName
-  # externalName: your-project.supabase.co
-  
-  # Option 2: If Supabase is in-cluster, use selector
-  selector:
-    app: supabase
+  type: ExternalName
+  # Points to the actual Supabase service in bb namespace
+  externalName: supabase.bb.svc.cluster.local
   ports:
     - name: http
-      port: 8080
-      targetPort: 8080
+      port: 8000
+      targetPort: 8000
 ---
 # =============================================================================
 # MIDDLEWARE: Retry
@@ -125,9 +119,9 @@ spec:
     - match: PathPrefix(`/supabase`)
       kind: Rule
       services:
-        # Reference Kubernetes Service directly (not TraefikService)
+        # Reference Kubernetes Service (ExternalName pointing to bb namespace)
         - name: supabase
-          port: 8080
+          port: 8000
           # Apply ServersTransport for timeout configuration
           serversTransport: supabase-transport
       middlewares:
@@ -141,7 +135,7 @@ spec:
       kind: Rule
       services:
         - name: supabase
-          port: 8080
+          port: 8000
           serversTransport: supabase-transport
       middlewares:
         - name: retry
