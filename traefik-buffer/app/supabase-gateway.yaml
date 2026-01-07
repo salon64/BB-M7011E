@@ -1,0 +1,21 @@
+---
+# =============================================================================
+# SUPABASE GATEWAY - EXTERNALNAME SERVICE
+# =============================================================================
+# ExternalName service to provide a shorter DNS alias for Traefik buffer
+# Allows services to use: http://supabase-gateway/supabase
+# Instead of: http://traefik-internal.infra.svc.cluster.local/supabase
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-gateway
+  namespace: app
+  labels:
+    app: supabase-gateway
+spec:
+  type: ExternalName
+  externalName: traefik-internal.infra.svc.cluster.local
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
