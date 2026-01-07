@@ -253,6 +253,25 @@ spec:
       targetPort: 3000
 ---
 # =============================================================================
+# GRAFANA INGRESSROUTE
+# =============================================================================
+# Exposes Grafana at dashboard.ronstad.se
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`dashboard.ronstad.se`)
+      kind: Rule
+      services:
+        - name: grafana
+          port: 3000
+---
+# =============================================================================
 # GRAFANA DATASOURCE PROVISIONING
 # =============================================================================
 # Auto-configures Prometheus as a datasource
