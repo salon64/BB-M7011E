@@ -35,6 +35,6 @@ keycloak:
       memory: "256Mi"
 
 # Ingress configuration
-domain: keycloak.ltu-m7011e-10.se
+domain: keycloak.ronstad.se
 email: jusgav-1@student.ltu.se
 certIssuer: letsencrypt-staging
