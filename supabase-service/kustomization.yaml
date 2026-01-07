@@ -4,3 +4,6 @@ kind: Kustomization
 resources:
   - service.yaml
   - endpoints.yaml
+  - k8s/app/envoy-config.yaml
+  - k8s/app/supabase-deployment.yaml
+  - k8s/app/supabase-service.yaml

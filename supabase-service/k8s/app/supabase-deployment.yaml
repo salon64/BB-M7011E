@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-buffer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: supabase-buffer
+  template:
+    metadata:
+      labels:
+        app: supabase-buffer
+    spec:
+      containers:
+        - name: envoy
+          image: envoyproxy/envoy:v1.31-latest
+          args:
+            - "-c"
+            - "/etc/envoy/envoy.yaml"
+            - "--log-level"
+            - "info"
+          ports:
+            - containerPort: 8080
+            - containerPort: 9901
+          volumeMounts:
+            - name: envoy-config
+              mountPath: /etc/envoy
+      volumes:
+        - name: envoy-config
+          configMap:
+            name: supabase-envoy-config

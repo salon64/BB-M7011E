@@ -1,6 +1,48 @@
 # Database Setup Guide
 
-Follow tutorial: https://www.youtube.com/watch?v=Gyh0c8pMmhE
+---
+
+## Sending Requests from Within the Same Namespace
+
+If your service is deployed in the same namespace as the buffer:
+
+```bash
+# Service DNS (same namespace)
+http://supabase-buffer:8000
+```
+
+Example with curl:
+
+```bash
+curl -X POST http://supabase-buffer:8000/rest/v1/Items \
+  -H "apikey: <YOUR_SUPABASE_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Coffee","price":350}'
+```
+
+All requests flow through Envoy before reaching Supabase (192.168.1.136:8000).
+
+---
+
+## Envoy Buffering & Retries
+
+The Supabase buffer service is deployed with **Envoy as a sidecar proxy** that provides:
+
+* HTTP request buffering (max 200 pending requests)
+* Automatic retries on 5xx errors
+* Connection circuit breaking
+* Prometheus metrics export
+* 120s request timeout
+
+### Monitoring
+
+Envoy metrics are available at:
+
+```
+http://supabase-buffer:9901/stats/prometheus
+```
+
+Import dashboard **ID 11021** in Grafana to visualize buffer pressure, retries, and latency.
 
 ---
 
