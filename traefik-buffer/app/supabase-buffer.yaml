@@ -1,0 +1,180 @@
+---
+# Namespace for application services
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: app
+  labels:
+    app.kubernetes.io/part-of: traefik-buffer
+---
+# =============================================================================
+# SUPABASE SERVICE DEFINITION
+# =============================================================================
+# Backend Kubernetes Service pointing to Supabase
+# This can be an ExternalName service if Supabase is external,
+# or a regular ClusterIP if running Supabase in-cluster
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase
+  namespace: app
+  labels:
+    app: supabase
+spec:
+  # Option 1: If Supabase is external (e.g., supabase.com hosted)
+  # Uncomment and modify:
+  # type: ExternalName
+  # externalName: your-project.supabase.co
+  
+  # Option 2: If Supabase is in-cluster, use selector
+  selector:
+    app: supabase
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+# =============================================================================
+# TRAEFIK SERVICE (Explicit upstream definition)
+# =============================================================================
+# Defines where Traefik forwards traffic
+# Using explicit DNS improves debugging and avoids ambiguity
+apiVersion: traefik.io/v1alpha1
+kind: TraefikService
+metadata:
+  name: supabase
+  namespace: app
+spec:
+  loadBalancer:
+    servers:
+      # For in-cluster Supabase:
+      - url: http://supabase.app.svc.cluster.local:8080
+      
+      # For external Supabase (supabase.com hosted), use:
+      # - url: https://your-project.supabase.co
+---
+# =============================================================================
+# MIDDLEWARE: Retry
+# =============================================================================
+# Retries transient failures only (5xx errors, network issues)
+# Does NOT retry client errors (4xx)
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: retry
+  namespace: app
+spec:
+  retry:
+    # Number of retry attempts
+    attempts: 3
+    # Initial wait between retries (exponential backoff)
+    initialInterval: 100ms
+---
+# =============================================================================
+# MIDDLEWARE: In-Flight Request Limiter (THE "BUFFER")
+# =============================================================================
+# Limits concurrency and creates backpressure
+# When limit is reached, new requests wait (queue behavior)
+# This is the core "buffering" mechanism
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: inflight-limit
+  namespace: app
+spec:
+  inFlightReq:
+    # Maximum concurrent forwarded requests to Supabase
+    # Tune based on Supabase capacity
+    # Lower = more backpressure, higher = more concurrent load on Supabase
+    amount: 50
+    
+    # Optional: source criterion for per-client limiting
+    # sourceCriterion:
+    #   requestHost: true
+---
+# =============================================================================
+# MIDDLEWARE: Forwarding Timeouts
+# =============================================================================
+# Allows slow backends without early failures
+# Important for Supabase queries that may take time
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: timeouts
+  namespace: app
+spec:
+  forwardingTimeouts:
+    # Time to establish connection to Supabase
+    dialTimeout: 30s
+    # Time to wait for response headers
+    responseHeaderTimeout: 120s
+---
+# =============================================================================
+# MIDDLEWARE: Headers (Optional - for Supabase auth)
+# =============================================================================
+# Adds/modifies headers for Supabase requests
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: supabase-headers
+  namespace: app
+spec:
+  headers:
+    customRequestHeaders:
+      # Add tracing header
+      X-Forwarded-By: "traefik-buffer"
+      # Supabase API key can be injected here if needed
+      # apikey: "${SUPABASE_ANON_KEY}"
+---
+# =============================================================================
+# INGRESS ROUTE: Supabase Internal
+# =============================================================================
+# Creates the internal HTTP endpoint for Supabase access
+# Other services call: http://traefik-internal.infra.svc.cluster.local/supabase
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: supabase-internal
+  namespace: app
+spec:
+  entryPoints:
+    - web
+  routes:
+    # Route for REST API
+    - match: PathPrefix(`/supabase`)
+      kind: Rule
+      services:
+        - name: supabase
+          kind: TraefikService
+      middlewares:
+        # Order matters: retry first, then limit, then timeouts
+        - name: retry
+        - name: inflight-limit
+        - name: timeouts
+        - name: supabase-headers
+    
+    # Route for Supabase Auth (if needed)
+    - match: PathPrefix(`/supabase/auth`)
+      kind: Rule
+      services:
+        - name: supabase
+          kind: TraefikService
+      middlewares:
+        - name: retry
+        - name: inflight-limit
+        - name: timeouts
+---
+# =============================================================================
+# STRIP PREFIX MIDDLEWARE (Optional)
+# =============================================================================
+# Removes /supabase prefix before forwarding to actual Supabase
+# Use if Supabase expects requests at root path
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-supabase-prefix
+  namespace: app
+spec:
+  stripPrefix:
+    prefixes:
+      - /supabase

@@ -1,0 +1,124 @@
+---
+# =============================================================================
+# ARGO CD APPLICATION - Traefik Buffer
+# =============================================================================
+# Deploy this to argocd namespace to have Argo CD manage the entire stack
+#
+# kubectl apply -f traefik-buffer/argocd-application.yaml
+#
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: traefik-buffer
+  namespace: argocd
+  # Finalizer ensures proper cleanup
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  
+  source:
+    # Update with your repository URL
+    repoURL: https://github.com/YOUR_ORG/BB-M7011E.git
+    targetRevision: main
+    path: traefik-buffer
+    
+    # Use directory recurse to pick up all subdirectories
+    directory:
+      recurse: true
+  
+  destination:
+    server: https://kubernetes.default.svc
+    # Empty namespace means resources define their own namespaces
+    namespace: ""
+  
+  syncPolicy:
+    automated:
+      # Automatically delete resources removed from Git
+      prune: true
+      # Automatically sync when cluster state drifts
+      selfHeal: true
+      # Allow empty (for initial sync)
+      allowEmpty: false
+    syncOptions:
+      # Create namespaces if they don't exist
+      - CreateNamespace=true
+      # Apply out of sync only
+      - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+# =============================================================================
+# ALTERNATIVE: Separate Applications per Component
+# =============================================================================
+# Use these if you want independent sync/rollback per component
+
+# --- Infrastructure (Traefik services)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: traefik-buffer-infra
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/YOUR_ORG/BB-M7011E.git
+    targetRevision: main
+    path: traefik-buffer/infra
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: infra
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+# --- Application routing (Supabase buffer)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: traefik-buffer-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/YOUR_ORG/BB-M7011E.git
+    targetRevision: main
+    path: traefik-buffer/app
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: app
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+# --- Monitoring (Prometheus + Grafana)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: traefik-buffer-monitoring
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/YOUR_ORG/BB-M7011E.git
+    targetRevision: main
+    path: traefik-buffer/monitoring
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

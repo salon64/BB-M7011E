@@ -1,0 +1,44 @@
+---
+# Namespace for Traefik infrastructure
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: infra
+  labels:
+    app.kubernetes.io/part-of: traefik-buffer
+---
+# Internal-only Traefik Service (used by other services)
+# Services call this instead of calling backends directly
+apiVersion: v1
+kind: Service
+metadata:
+  name: traefik-internal
+  namespace: infra
+  labels:
+    app: traefik
+spec:
+  type: ClusterIP
+  selector:
+    app: traefik
+  ports:
+    # Internal HTTP entrypoint
+    - name: web
+      port: 80
+      targetPort: 8000
+---
+# Metrics Service for Prometheus scraping
+# Exposes Traefik's internal metrics endpoint
+apiVersion: v1
+kind: Service
+metadata:
+  name: traefik-metrics
+  namespace: infra
+  labels:
+    app: traefik
+spec:
+  selector:
+    app: traefik
+  ports:
+    - name: metrics
+      port: 9100
+      targetPort: 9100
