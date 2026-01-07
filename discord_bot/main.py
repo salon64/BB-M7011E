@@ -117,10 +117,12 @@ async def balance(ctx: commands.Context) -> None:
             
             if response.status_code == 200:
                 data = response.json()
+                balance_ore = data.get('balance', 0)
+                balance_sek = balance_ore / 100
                 await ctx.send(
                     f"💰 **Account Info**\n"
                     f"👤 Name: {data.get('first_name', 'N/A')} {data.get('last_name', '')}\n"
-                    f"💵 Balance: {data.get('balance', 0)} credits\n"
+                    f"💵 Balance: {balance_sek:.2f} SEK\n"
                     f"✅ Active: {'Yes' if data.get('active') else 'No'}"
                 )
             elif response.status_code == 404:
@@ -241,6 +243,81 @@ async def buy(ctx: commands.Context, item_id: Optional[str] = None) -> None:
         except httpx.RequestError as e:
             logger.error(f"Request to services failed: {e}")
             await ctx.send("❌ Could not connect to backend services.")
+
+@bot.command(name="add_funds")
+async def add_funds(ctx: commands.Context, amount: Optional[str] = None) -> None:
+    """Add funds to your account. Requires an image attachment as proof of payment."""
+    if amount is None:
+        await ctx.send(f"❌ Please specify an amount. Usage: `{COMMAND_PREFIX}add_funds <amount>` with an image attachment")
+        return
+    
+    # Validate amount is a positive number
+    try:
+        amount_value = float(amount)
+        if amount_value <= 0:
+            await ctx.send("❌ Amount must be a positive number.")
+            return
+    except ValueError:
+        await ctx.send("❌ Invalid amount. Please enter a valid number.")
+        return
+    
+    # Check for image attachment
+    if not ctx.message.attachments:
+        await ctx.send("❌ Please attach an image (receipt/proof of payment) with your request.")
+        return
+    
+    # Find image attachment
+    image_attachment = None
+    valid_image_types = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp']
+    for attachment in ctx.message.attachments:
+        if attachment.content_type and attachment.content_type in valid_image_types:
+            image_attachment = attachment
+            break
+    
+    if not image_attachment:
+        await ctx.send("❌ Please attach a valid image file (PNG, JPEG, GIF, or WebP).")
+        return
+    
+    discord_id = str(ctx.message.author.id)
+    card_id = get_user_card_id(discord_id)
+    jwt_token = get_discord_jwt()
+    
+    if not jwt_token:
+        await ctx.send("❌ Failed to authenticate with backend services.")
+        return
+    
+    # Call user service to add balance
+    async with httpx.AsyncClient() as client:
+        try:
+            amount_ore = int(amount_value * 100)  # Convert to öre (cents)
+            response = await client.post(
+                f"{USER_SERVICE_URL}/user/add_balance",
+                json={"card_id": int(card_id), "amount": amount_ore},
+                headers={"Authorization": f"Bearer {jwt_token}"},
+                timeout=10.0
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                new_balance_sek = data.get('new_balance', 0) / 100
+                await ctx.send(
+                    f"✅ **Funds Added Successfully!**\n"
+                    f"💵 Amount: {amount_value:.2f} SEK\n"
+                    f"📎 Receipt: Attached\n"
+                    f"💰 New Balance: {new_balance_sek:.2f} SEK"
+                )
+                logger.info(f"Funds added: user={discord_id}, amount={amount_value} SEK, receipt={image_attachment.url}")
+            elif response.status_code == 403:
+                await ctx.send("❌ You don't have permission to add funds to this account.")
+            elif response.status_code == 404:
+                await ctx.send("❌ User not found in the system.")
+            else:
+                logger.error(f"User service error: {response.status_code} - {response.text}")
+                await ctx.send("❌ Failed to add funds. Please try again later.")
+        except httpx.RequestError as e:
+            logger.error(f"Request to user service failed: {e}")
+            await ctx.send("❌ Could not connect to user service.")
+
 
 @bot.command(name="auth_test")
 async def auth_test(ctx: commands.Context) -> None:

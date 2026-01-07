@@ -104,18 +104,24 @@ async def create_user(
 
 @router.post("/user/add_balance")
 async def add_balance(
-    user_id: str,
-    amount: int,
     request: addBalance,
     supabase: Client = Depends(get_supabase),
     user_data: dict = Depends(require_auth),
-    # user=Depends(keycloak.get_current_user),
 ):
     """
     Add balance to a user's account. Requires authentication.
     """
-
-    if request.card_id != int(user_data.get("preferred_username", -1)) and not "bb_admin" in user_data.get("realm_access", {}).get("roles", []):
+    # Check if user is admin or service account
+    is_admin = "bb_admin" in user_data.get("realm_access", {}).get("roles", [])
+    is_service_account = user_data.get("preferred_username", "").startswith("service-account-")
+    
+    # Try to get numeric user ID from preferred_username
+    try:
+        current_user_id = int(user_data.get("preferred_username", -1))
+    except (ValueError, TypeError):
+        current_user_id = -1
+    
+    if request.card_id != current_user_id and not is_admin and not is_service_account:
         raise HTTPException(status_code=403, detail="Cannot add balance to another user's account")
     try:
         result = supabase.rpc(
