@@ -35,27 +35,6 @@ spec:
       targetPort: 8080
 ---
 # =============================================================================
-# TRAEFIK SERVICE (Explicit upstream definition)
-# =============================================================================
-# Defines where Traefik forwards traffic
-# Using explicit DNS improves debugging and avoids ambiguity
-apiVersion: traefik.io/v1alpha1
-kind: TraefikService
-metadata:
-  name: supabase
-  namespace: app
-spec:
-  loadBalancer:
-    # Reference the ServersTransport for timeout configuration
-    serversTransport: supabase-transport
-    servers:
-      # For in-cluster Supabase:
-      - url: http://supabase.app.svc.cluster.local:8080
-      
-      # For external Supabase (supabase.com hosted), use:
-      # - url: https://your-project.supabase.co
----
-# =============================================================================
 # MIDDLEWARE: Retry
 # =============================================================================
 # Retries transient failures only (5xx errors, network issues)
@@ -146,11 +125,13 @@ spec:
     - match: PathPrefix(`/supabase`)
       kind: Rule
       services:
+        # Reference Kubernetes Service directly (not TraefikService)
         - name: supabase
-          kind: TraefikService
+          port: 8080
+          # Apply ServersTransport for timeout configuration
+          serversTransport: supabase-transport
       middlewares:
         # Order matters: retry first, then limit
-        # Timeouts are configured via ServersTransport on the TraefikService
         - name: retry
         - name: inflight-limit
         - name: supabase-headers
@@ -160,7 +141,8 @@ spec:
       kind: Rule
       services:
         - name: supabase
-          kind: TraefikService
+          port: 8080
+          serversTransport: supabase-transport
       middlewares:
         - name: retry
         - name: inflight-limit
