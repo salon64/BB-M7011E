@@ -46,6 +46,8 @@ metadata:
   namespace: app
 spec:
   loadBalancer:
+    # Reference the ServersTransport for timeout configuration
+    serversTransport: supabase-transport
     servers:
       # For in-cluster Supabase:
       - url: http://supabase.app.svc.cluster.local:8080
@@ -93,21 +95,21 @@ spec:
     #   requestHost: true
 ---
 # =============================================================================
-# MIDDLEWARE: Forwarding Timeouts
+# SERVERSTRANSPORT: Forwarding Timeouts
 # =============================================================================
 # Allows slow backends without early failures
 # Important for Supabase queries that may take time
+# NOTE: Timeouts use ServersTransport, not Middleware!
 apiVersion: traefik.io/v1alpha1
-kind: Middleware
+kind: ServersTransport
 metadata:
-  name: timeouts
+  name: supabase-transport
   namespace: app
 spec:
   forwardingTimeouts:
-    # Time to establish connection to Supabase
     dialTimeout: 30s
-    # Time to wait for response headers
     responseHeaderTimeout: 120s
+    idleConnTimeout: 90s
 ---
 # =============================================================================
 # MIDDLEWARE: Headers (Optional - for Supabase auth)
@@ -147,10 +149,10 @@ spec:
         - name: supabase
           kind: TraefikService
       middlewares:
-        # Order matters: retry first, then limit, then timeouts
+        # Order matters: retry first, then limit
+        # Timeouts are configured via ServersTransport on the TraefikService
         - name: retry
         - name: inflight-limit
-        - name: timeouts
         - name: supabase-headers
     
     # Route for Supabase Auth (if needed)
@@ -162,7 +164,6 @@ spec:
       middlewares:
         - name: retry
         - name: inflight-limit
-        - name: timeouts
 ---
 # =============================================================================
 # STRIP PREFIX MIDDLEWARE (Optional)
