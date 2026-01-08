@@ -44,7 +44,12 @@ jobs:
       - name: Run tests with coverage
         run: |
           cd ${{ matrix.service }}
-          pytest tests/ --cov=${{ matrix.coverage_targets }} --cov-report=term-missing --cov-fail-under=80
+          IFS=',' read -ra TARGETS <<< "${{ matrix.coverage_targets }}"
+          COV_ARGS=""
+          for t in "${TARGETS[@]}"; do
+            COV_ARGS="$COV_ARGS --cov=$t"
+          done
+          pytest tests/ $COV_ARGS --cov-report=term-missing --cov-fail-under=80
 
   test-multiple-python-versions:
     name: Test ${{ matrix.service }} on Python ${{ matrix.python-version }}

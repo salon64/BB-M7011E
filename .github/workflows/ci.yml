@@ -58,7 +58,12 @@ jobs:
       - name: Run tests with coverage
         run: |
           cd ${{ matrix.service }}
-          pytest tests/ --cov=${{ matrix.coverage_targets }} --cov-report=xml --cov-report=term-missing
+          IFS=',' read -ra TARGETS <<< "${{ matrix.coverage_targets }}"
+          COV_ARGS=""
+          for t in "${TARGETS[@]}"; do
+            COV_ARGS="$COV_ARGS --cov=$t"
+          done
+          pytest tests/ $COV_ARGS --cov-report=xml --cov-report=term-missing
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
