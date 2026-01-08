@@ -32,3 +32,12 @@ class UserInfoResponse(BaseModel):
     last_name: str
     balance: int
     active: bool
+
+
+class DiscordLookup(BaseModel):
+    discord_id: str
+
+
+class DiscordLookupResponse(BaseModel):
+    card_id: int
+    discord_id: str

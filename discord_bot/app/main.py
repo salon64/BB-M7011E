@@ -8,7 +8,7 @@ import httpx
 import jwt
 from datetime import datetime
 from urllib.parse import urlencode
-from app.auth import get_user_card_id, get_discord_jwt, UserNotLinkedError
+from auth import get_user_card_id, get_discord_jwt, UserNotLinkedError
 from discord.ext import commands
 from dotenv import load_dotenv
 from typing import Optional

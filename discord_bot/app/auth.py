@@ -2,7 +2,6 @@ import os
 import logging
 import time
 import requests
-from common.database import get_supabase
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +11,9 @@ KEYCLOAK_REALM = os.getenv("KEYCLOAK_REALM", "BB")
 DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID", "discord-to-user")
 DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", "")
 INSECURE = os.getenv("INSECURE", "false").lower() == "true"
+
+# User service URL for discord lookup
+USER_SERVICE_URL = os.getenv("USER_SERVICE_URL", "http://user-service:8000")
 
 # JWT cache settings - max TTL from env var (default: 1 day = 86400 seconds)
 # Actual TTL will be the minimum of token's expires_in and this value
@@ -89,7 +91,7 @@ def get_discord_jwt() -> str | None:
 
 def get_user_card_id(discord_id: str) -> str:
     """
-    Get the card_id for a Discord user from Supabase.
+    Get the card_id for a Discord user from the user service.
 
     Args:
         discord_id: The Discord user ID to look up
@@ -100,13 +102,31 @@ def get_user_card_id(discord_id: str) -> str:
     Raises:
         UserNotLinkedError: If no user exists with the given Discord ID
     """
-    client = get_supabase()
-    response = (
-        client.table("Users").select("card_id").eq("discord", discord_id).execute()
-    )
-
-    if not response.data:
-        logger.warning(f"No user found with discord_id: {discord_id}")
+    jwt_token = get_discord_jwt()
+    if not jwt_token:
+        logger.error("Failed to get JWT for discord lookup")
         raise UserNotLinkedError(discord_id)
 
-    return response.data[0]["card_id"]
+    try:
+        resp = requests.post(
+            f"{USER_SERVICE_URL}/user/discord_lookup",
+            json={"discord_id": discord_id},
+            headers={"Authorization": f"Bearer {jwt_token}"},
+            verify=not INSECURE,
+            timeout=10,
+        )
+
+        if resp.status_code == 200:
+            return str(resp.json()["card_id"])
+        elif resp.status_code == 404:
+            logger.warning(f"No user found with discord_id: {discord_id}")
+            raise UserNotLinkedError(discord_id)
+        else:
+            logger.error(
+                f"User service discord_lookup error: {resp.status_code} - {resp.text}"
+            )
+            raise UserNotLinkedError(discord_id)
+
+    except requests.RequestException as e:
+        logger.error(f"Request to user service failed: {e}")
+        raise UserNotLinkedError(discord_id)

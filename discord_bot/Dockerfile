@@ -7,15 +7,15 @@ COPY common/ ./common/
 RUN pip install --no-cache-dir ./common
 
 # Install dependencies
-COPY discord_bot/requirements.txt .
+COPY discord_bot/app/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application
-COPY discord_bot/ .
+COPY discord_bot/app/ ./app/
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
 # Run application
-CMD ["python", "main.py"]
+CMD ["python", "app/main.py"]
