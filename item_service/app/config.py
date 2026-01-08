@@ -10,20 +10,20 @@ class Settings:
         self.supabase_key = os.getenv("SUPABASE_KEY", "test-key")
 
         # Keycloak
-        self.keycloak_url = os.getenv("KEYCLOAK_URL", "https://keycloak.ltu-m7011e-10.se")
+        self.keycloak_url = os.getenv(
+            "KEYCLOAK_URL", "https://keycloak.ltu-m7011e-10.se"
+        )
         self.keycloak_realm = os.getenv("KEYCLOAK_REALM", "BBosch")
         self.keycloak_admin_user = os.getenv("KEYCLOAK_ADMIN_USER", "admin")
         self.keycloak_admin_pass = os.getenv("KEYCLOAK_ADMIN_PASSWORD", "BBadmin")
         self.keycloak_client_id = os.getenv("KEYCLOAK_CLIENT_ID", "item-service")
         self.keycloak_client_secret = os.getenv(
-            "KEYCLOAK_CLIENT_SECRET", 
-            "YOUR_ITEM_SERVICE_CLIENT_SECRET"
+            "KEYCLOAK_CLIENT_SECRET", "YOUR_ITEM_SERVICE_CLIENT_SECRET"
         )
         self.keycloak_callback_uri = os.getenv(
-            "KEYCLOAK_CALLBACK_URI",
-            "https://item-service.ltu-m7011e-10.se/callback"
+            "KEYCLOAK_CALLBACK_URI", "https://item-service.ltu-m7011e-10.se/callback"
         )
-        
+
         # Service settings
         self.service_name = "item-service"
         self.host = "0.0.0.0"
