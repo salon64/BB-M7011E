@@ -78,7 +78,7 @@ def main():
     print("=" * 80)
 
     try:
-        result = test_auth_endpoint(token, api_url, insecure)
+        test_auth_endpoint(token, api_url, insecure)
         print("\n✓ Request successful!")
     except Exception as e:
         print(f"\n✗ Request failed: {e}")
