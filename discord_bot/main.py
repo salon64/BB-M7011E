@@ -5,6 +5,8 @@ import os
 import logging
 import discord
 import httpx
+import jwt
+from datetime import datetime
 from urllib.parse import urlencode
 from app.auth import get_user_card_id, get_discord_jwt, UserNotLinkedError
 from discord.ext import commands
@@ -333,10 +335,24 @@ async def auth_test(ctx: commands.Context) -> None:
     # Truncate JWT for display (show first 20 and last 10 chars)
     jwt_display = f"{jwt_token[:20]}...{jwt_token[-10:]}" if jwt_token and len(jwt_token) > 30 else jwt_token
     
+    # Decode JWT to get expiration time
+    expires_display = "N/A"
+    if jwt_token:
+        try:
+            decoded = jwt.decode(jwt_token, options={"verify_signature": False})
+            if "exp" in decoded:
+                exp_timestamp = decoded["exp"]
+                exp_datetime = datetime.fromtimestamp(exp_timestamp)
+                expires_display = exp_datetime.strftime("%Y-%m-%d %H:%M:%S")
+        except Exception as e:
+            logger.error(f"Failed to decode JWT: {e}")
+            expires_display = "Error decoding"
+    
     await ctx.send(
         f"🔐 Authentication test:\n"
         f"📇 Card ID: `{card_id}`\n"
-        f"🎫 JWT: `{jwt_display}`"
+        f"🎫 JWT: `{jwt_display}`\n"
+        f"⏰ Expires: `{expires_display}`"
     )
 
 
