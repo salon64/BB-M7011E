@@ -1,3 +1,4 @@
+import logging
 import sys
 from pathlib import Path
 
@@ -8,11 +9,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))  # Add repo root fo
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import Mock
-from uuid import UUID
+from uuid import UUID, uuid4
 from postgrest.exceptions import APIError
 from main import app
 from common.database import get_supabase
 from common.auth import require_auth
+from payment_service import main
 
 
 @pytest.fixture
@@ -162,6 +164,35 @@ class TestDebitPayment:
             },
         )
 
+    # ======= Authorization User =======
+
+    def test_unauthorized_debit_attempt(self, mock_supabase, caplog):
+        """Unauthorized debit attempt should return 403 and log a WARNING."""
+        # set auth to a caller that is NOT admin and has different preferred_username
+        app.dependency_overrides[require_auth] = lambda: {
+            "preferred_username": "1234",
+            "realm_access": {"roles": []},
+        }
+        # supabase mock
+        app.dependency_overrides[get_supabase] = lambda: mock_supabase
+
+        client = TestClient(app)
+        caplog.set_level(logging.WARNING)
+
+        resp = client.post(
+            "/payments/debit",
+            json={"user_id": 9999, "item_id": str(uuid4())},
+        )
+
+        assert resp.status_code == 403
+        assert any(
+            "Unauthorized debit attempt" in rec.getMessage() and rec.levelno == logging.WARNING
+            for rec in caplog.records
+        )
+
+        app.dependency_overrides.clear()
+    
+
     # ========= Error Handling Tests =========
 
     def test_insufficient_funds_error(self, client, mock_supabase, mock_user_data):
@@ -268,3 +299,68 @@ class TestDebitPayment:
         assert isinstance(data["new_balance"], int)
         assert data["user_id"] == user_id
         assert data["new_balance"] == new_balance
+
+    def test_unexpected_error_logs_and_500(self, caplog):
+        """If the RPC raises, the endpoint should log CRITICAL and return 500."""
+        # auth returns matching user id so authorization passes
+        app.dependency_overrides[require_auth] = lambda: {
+            "preferred_username": "1",
+            "realm_access": {"roles": []},
+        }
+
+        class FakeRPC:
+            def execute(self):
+                raise RuntimeError("boom")
+
+        class FakeSupabase:
+            def rpc(self, *args, **kwargs):
+                return FakeRPC()
+
+        app.dependency_overrides[get_supabase] = lambda: FakeSupabase()
+
+        client = TestClient(app)
+        caplog.set_level(logging.CRITICAL)
+
+        resp = client.post(
+            "/payments/debit",
+            json={"user_id": 1, "item_id": str(uuid4())},
+        )
+
+        assert resp.status_code == 500
+        assert any(
+            "Unexpected error during debit" in rec.getMessage() and rec.levelno == logging.CRITICAL
+            for rec in caplog.records
+        )
+
+        app.dependency_overrides.clear()
+
+    # ========== Lifespan status testing =========
+
+    def test_lifespan_success(monkeypatch, caplog):
+        class FakeClient:
+            def table(self, *args, **kwargs):
+                class Q:
+                    def select(self, *a, **k): return self
+                    def limit(self, *a, **k): return self
+                    def execute(self): return type("R", (), {"data": [1]})()
+                return Q()
+
+        monkeypatch.setattr(main, "get_supabase_client", lambda: FakeClient())
+        caplog.set_level(logging.INFO)
+
+        with TestClient(main.app) as client:
+            r = client.get("/health")
+            assert r.status_code == 200
+            assert r.json() == {"status": "healthy"}
+
+        assert "Supabase connection established successfully" in caplog.text
+
+    def test_lifespan_failure(monkeypatch, caplog):
+        monkeypatch.setattr(main, "get_supabase_client", lambda: (_ for _ in ()).throw(RuntimeError("no db")))
+        caplog.set_level(logging.ERROR)
+
+        with TestClient(main.app) as client:
+            r = client.get("/health")
+            assert r.status_code == 200
+
+        assert "Supabase connection failed" in caplog.text or "✗ Supabase connection failed" in caplog.text
