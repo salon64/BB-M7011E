@@ -1,5 +1,3 @@
-import os
-import time
 from unittest.mock import Mock, patch
 import app.auth as auth
 import pytest
