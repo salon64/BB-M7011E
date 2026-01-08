@@ -27,7 +27,7 @@ class Settings:
         # Service settings
         self.service_name = "item-service"
         self.host = "0.0.0.0"
-        self.service_port = 8005  # Different port from user-service
+        self.service_port = 8004  # Different port from user-service
         self.log_level = os.getenv("LOG_LEVEL", "DEBUG")
 
 

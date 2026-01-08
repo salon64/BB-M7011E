@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routes import router
 from app.config import settings
 import logging
+from contextlib import asynccontextmanager
 
 # Setup logging
 logging.basicConfig(
@@ -12,10 +13,34 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    logger.info("=" * 80)
+    logger.info("ITEM SERVICE STARTUP")
+    logger.info("=" * 80)
+    logger.info(f"Service Name: {settings.service_name}")
+    logger.info(f"Service Version: 1.0.0")
+    logger.info(f"Host: {settings.host}:{settings.service_port}")
+    logger.info(f"Log Level: {settings.log_level}")
+    
+    # Log all registered routes
+    logger.info("Registered Routes:")
+    for route in app.routes:
+        if hasattr(route, 'path') and hasattr(route, 'methods'):
+            logger.info(f"  {route.methods} {route.path}")
+    logger.info("=" * 80)
+    
+    yield
+    
+    # Shutdown
+    logger.info("Item Service shutting down...")
+
 app = FastAPI(
     title="Item Service API",
     description="API for managing items in the BBosch system",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Configure CORS
@@ -28,7 +53,7 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(router, prefix="/api/v1")
+app.include_router(router)
 
 @app.get("/")
 async def root():

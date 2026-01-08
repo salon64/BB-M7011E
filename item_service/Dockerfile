@@ -12,7 +12,7 @@ COPY common /app/common
 RUN rm -rf /app/common/bb_common.egg-info && pip install --no-cache-dir /app/common
 
 # Install dependencies into the virtual environment
-COPY user_service/requirements.txt .
+COPY item_service/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Create the production image
@@ -23,7 +23,7 @@ WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
 
 # Copy application code
-COPY user_service/ .
+COPY item_service/ .
 
 # Activate the virtual environment
 ENV PATH="/opt/venv/bin:$PATH"

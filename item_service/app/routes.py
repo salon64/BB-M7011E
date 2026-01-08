@@ -54,27 +54,27 @@ async def create_item(
         raise HTTPException(status_code=403, detail="BB Admin privileges required to create items")
     
     try:
-        logger.info("Calling Supabase RPC create_item...")
-        result = supabase.rpc(
-            "create_item",
-            {
-                "name_input": request.name,
-                "price_input": request.price,
-                "barcode_id_input": request.barcode_id,
-            },
-        ).execute()
-        logger.info("Supabase RPC result: %s", result)
-        
-        item_id = result.data
-        return {
-            "status": "success",
-            "item_id": str(item_id),
+        logger.info("Inserting item into Items table...")
+        result = supabase.table("Items").insert({
             "name": request.name,
             "price": request.price,
-            "barcode_id": request.barcode_id
+            "barcode_id": request.barcode_id,
+        }).execute()
+        logger.info("Insert result: %s", result)
+        
+        if not result.data:
+            raise HTTPException(status_code=500, detail="Failed to create item")
+        
+        item = result.data[0]
+        return {
+            "status": "success",
+            "item_id": str(item["id"]),
+            "name": item["name"],
+            "price": item["price"],
+            "barcode_id": item.get("barcode_id")
         }
     except Exception as e:
-        logger.error("Supabase error: %s", e)
+        logger.error("Database error: %s", e)
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
 
@@ -91,19 +91,13 @@ async def fetch_item_info(
     logger = logging.getLogger("routes")
     
     try:
-        result = supabase.rpc(
-            "fetch_item_info",
-            {
-                "item_id_input": str(request.item_id),
-            },
-        ).execute()
+        result = supabase.table("Items").select("*").eq("id", str(request.item_id)).execute()
         
-        item_info = result.data
-        
-        # Handle empty result
-        if not item_info:
+        if not result.data:
             logger.warning("Item not found for item_id=%s", request.item_id)
             raise HTTPException(status_code=404, detail="Item not found")
+        
+        item_info = result.data[0]
         
         return ItemInfoResponse(
             id=UUID(item_info['id']),
@@ -112,13 +106,8 @@ async def fetch_item_info(
             barcode_id=item_info.get('barcode_id'),
             active=item_info['active']
         )
-    except APIError as e:
-        logger.error("APIError in fetch_item_info: %s", e, exc_info=True)
-        error_msg = e.message.lower()
-        if "item not found" in error_msg:
-            raise HTTPException(status_code=404, detail="Item not found")
-        else:
-            raise HTTPException(status_code=500, detail=f"Database error: {e.message}")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("Unexpected error in fetch_item_info: %s", e, exc_info=True)
         raise HTTPException(
@@ -138,18 +127,13 @@ async def fetch_item_by_barcode(
     logger = logging.getLogger("routes")
     
     try:
-        result = supabase.rpc(
-            "fetch_item_by_barcode",
-            {
-                "barcode_id_input": request.barcode_id,
-            },
-        ).execute()
+        result = supabase.table("Items").select("*").eq("barcode_id", request.barcode_id).eq("active", True).execute()
         
-        item_info = result.data
-        
-        if not item_info:
+        if not result.data:
             logger.warning("Item not found for barcode_id=%s", request.barcode_id)
             raise HTTPException(status_code=404, detail="Item not found or inactive")
+        
+        item_info = result.data[0]
         
         return ItemInfoResponse(
             id=UUID(item_info['id']),
@@ -158,13 +142,8 @@ async def fetch_item_by_barcode(
             barcode_id=item_info.get('barcode_id'),
             active=item_info['active']
         )
-    except APIError as e:
-        logger.error("APIError in fetch_item_by_barcode: %s", e, exc_info=True)
-        error_msg = e.message.lower()
-        if "item not found" in error_msg:
-            raise HTTPException(status_code=404, detail="Item not found or inactive")
-        else:
-            raise HTTPException(status_code=500, detail=f"Database error: {e.message}")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("Unexpected error in fetch_item_by_barcode: %s", e, exc_info=True)
         raise HTTPException(
@@ -184,12 +163,12 @@ async def list_items(
     logger = logging.getLogger("routes")
     
     try:
-        result = supabase.rpc(
-            "list_items",
-            {
-                "active_only": request.active_only,
-            },
-        ).execute()
+        query = supabase.table("Items").select("*")
+        
+        if request.active_only:
+            query = query.eq("active", True)
+        
+        result = query.execute()
         
         items = result.data or []
         
@@ -224,32 +203,29 @@ async def update_item(
         raise HTTPException(status_code=403, detail="BB Admin privileges required to update items")
     
     try:
-        result = supabase.rpc(
-            "update_item",
-            {
-                "item_id_input": str(item_id),
-                "name_input": request.name,
-                "price_input": request.price,
-                "barcode_id_input": request.barcode_id,
-            },
-        ).execute()
+        # Build update data, only including non-None fields
+        update_data = {}
+        if request.name is not None:
+            update_data["name"] = request.name
+        if request.price is not None:
+            update_data["price"] = request.price
+        if request.barcode_id is not None:
+            update_data["barcode_id"] = request.barcode_id
         
-        item_info = result.data
+        if not update_data:
+            raise HTTPException(status_code=400, detail="No fields to update")
         
-        if not item_info:
+        result = supabase.table("Items").update(update_data).eq("id", str(item_id)).execute()
+        
+        if not result.data:
             raise HTTPException(status_code=404, detail="Item not found")
         
         return {
             "status": "success",
-            "item": item_info
+            "item": result.data[0]
         }
-    except APIError as e:
-        logger.error("APIError in update_item: %s", e, exc_info=True)
-        error_msg = e.message.lower()
-        if "item not found" in error_msg:
-            raise HTTPException(status_code=404, detail="Item not found")
-        else:
-            raise HTTPException(status_code=500, detail=f"Database error: {e.message}")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("Unexpected error in update_item: %s", e, exc_info=True)
         raise HTTPException(
@@ -274,25 +250,25 @@ async def set_item_status(
         raise HTTPException(status_code=403, detail="BB Admin privileges required to set item status")
     
     try:
-        result = supabase.rpc(
-            "item_set_status",
-            {
-                "item_id_input": str(request.item_id),
-                "item_status_input": request.item_status,
-            },
-        ).execute()
-        return ItemSetStatusResponse(response=result.data)
-    except APIError as e:
-        error_msg = e.message.lower()
-        if "item not found" in error_msg:
+        # First check current status
+        check_result = supabase.table("Items").select("active").eq("id", str(request.item_id)).execute()
+        
+        if not check_result.data:
             raise HTTPException(status_code=404, detail="Item not found")
-        elif "item status is already active=true" in error_msg:
-            raise HTTPException(status_code=400, detail="Item status is already active=TRUE")
-        elif "item status is already active=false" in error_msg:
-            raise HTTPException(status_code=400, detail="Item status is already active=FALSE")
-        else:
-            raise HTTPException(status_code=500, detail=f"Database error: {e.message}")
+        
+        current_status = check_result.data[0]["active"]
+        if current_status == request.item_status:
+            status_str = "TRUE" if request.item_status else "FALSE"
+            raise HTTPException(status_code=400, detail=f"Item status is already active={status_str}")
+        
+        # Update the status
+        result = supabase.table("Items").update({"active": request.item_status}).eq("id", str(request.item_id)).execute()
+        
+        return ItemSetStatusResponse(response=f"Item status updated to active={request.item_status}")
+    except HTTPException:
+        raise
     except Exception as e:
+        logger.error("Unexpected error in set_item_status: %s", e, exc_info=True)
         raise HTTPException(
             status_code=500, detail=f"An unexpected error occurred: {str(e)}"
         )
@@ -315,24 +291,18 @@ async def delete_item(
         raise HTTPException(status_code=403, detail="BB Admin privileges required to delete items")
     
     try:
-        result = supabase.rpc(
-            "delete_item",
-            {
-                "item_id_input": str(request.item_id),
-            },
-        ).execute()
+        # Soft delete - set active to false
+        result = supabase.table("Items").update({"active": False}).eq("id", str(request.item_id)).execute()
+        
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Item not found")
         
         return {
             "status": "success",
-            "message": result.data
+            "message": "Item deleted (deactivated) successfully"
         }
-    except APIError as e:
-        logger.error("APIError in delete_item: %s", e, exc_info=True)
-        error_msg = e.message.lower()
-        if "item not found" in error_msg:
-            raise HTTPException(status_code=404, detail="Item not found")
-        else:
-            raise HTTPException(status_code=500, detail=f"Database error: {e.message}")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("Unexpected error in delete_item: %s", e, exc_info=True)
         raise HTTPException(
