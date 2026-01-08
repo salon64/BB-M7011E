@@ -7,7 +7,7 @@ import httpx
 
 class TestAuth:
     """Test authentication-related functions."""
-    def test_get_discord_jwt_success(monkeypatch):
+    def test_get_discord_jwt_success(self, monkeypatch):
 
         fake_token = "fake.jwt.token"
 
@@ -34,7 +34,7 @@ class TestAuth:
             assert token2 == fake_token
 
 
-    def test_get_discord_jwt_failure(monkeypatch):
+    def test_get_discord_jwt_failure(self, monkeypatch):
 
         monkeypatch.setenv("KEYCLOAK_URL", "https://kc.example.com")
         monkeypatch.setenv("KEYCLOAK_REALM", "realm")
@@ -49,7 +49,7 @@ class TestAuth:
 
 class TestGetUserCardID:
     """Test get_user_card_id function."""
-    def test_get_user_card_id_found(monkeypatch):
+    def test_get_user_card_id_found(self, monkeypatch):
         import app.auth as auth
 
         class FakeResult:
@@ -76,7 +76,7 @@ class TestGetUserCardID:
         assert card == 12345
 
 
-    def test_get_user_card_id_not_linked(monkeypatch):
+    def test_get_user_card_id_not_linked(self, monkeypatch):
 
         class FakeResult:
             def __init__(self, data):
@@ -106,7 +106,7 @@ class TestGetUserCardID:
 class TestUserServiceClient:
     """Test UserServiceClient methods."""
     @pytest.mark.asyncio
-    async def test_service_client_http_error(monkeypatch):
+    async def test_service_client_http_error(self, monkeypatch):
 
         # make AsyncClient.get raise HTTPError
         fake_exc = httpx.HTTPError("boom")
