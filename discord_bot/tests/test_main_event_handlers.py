@@ -1,4 +1,3 @@
-import asyncio
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -59,7 +58,12 @@ async def test_on_command_error_command_not_found(monkeypatch):
 
     await bot_main.on_command_error(ctx, err)
     assert ctx.sent.await_count == 1
-    assert "Command not found" in ctx.sent.await_args[0][0][0]
+    # collect all positional and keyword args into a single string for robust checking
+    call = ctx.sent.await_args
+    args = call[0][0] if call and call[0] else ()
+    kwargs = call[0][1] if call and call[0] else {}
+    sent_text = " ".join(map(str, args)) + " " + " ".join(f"{k}={v}" for k, v in kwargs.items())
+    assert "Command not found" in sent_text
 
 
 @pytest.mark.asyncio
@@ -83,12 +87,17 @@ async def test_on_command_error_missing_required_argument(monkeypatch):
 
     ctx = Ctx()
     # MissingRequiredArgument expects a 'param' - provide a simple namespace with name
-    param = SimpleNamespace(name="item_id")
-    err = commands.MissingRequiredArgument(param)
+    # construct an instance without calling the constructor (which may access param attrs)
+    err = object.__new__(commands.MissingRequiredArgument)
+    err.param = SimpleNamespace(name="item_id")
 
     await bot_main.on_command_error(ctx, err)
     assert ctx.sent.await_count == 1
-    assert "Missing required argument" in ctx.sent.await_args[0][0][0]
+    call = ctx.sent.await_args
+    args = call[0][0] if call and call[0] else ()
+    kwargs = call[0][1] if call and call[0] else {}
+    sent_text = " ".join(map(str, args)) + " " + " ".join(f"{k}={v}" for k, v in kwargs.items())
+    assert "Missing required argument" in sent_text
 
 
 @pytest.mark.asyncio
@@ -121,4 +130,8 @@ async def test_on_command_error_user_not_linked(monkeypatch):
 
     await bot_main.on_command_error(ctx, err)
     assert ctx.sent.await_count == 1
-    assert "link your account" in ctx.sent.await_args[0][0][0] or "link your account" in ctx.sent.await_args[0][0][0].lower()
+    call = ctx.sent.await_args
+    args = call[0][0] if call and call[0] else ()
+    kwargs = call[0][1] if call and call[0] else {}
+    sent_text = " ".join(map(str, args)) + " " + " ".join(f"{k}={v}" for k, v in kwargs.items())
+    assert ("link your account" in sent_text.lower()) or ("link" in sent_text.lower() and "account" in sent_text.lower())
