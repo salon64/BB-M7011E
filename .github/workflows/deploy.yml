@@ -18,14 +18,20 @@ jobs:
     if: github.ref == 'refs/heads/main'
     strategy:
       matrix:
-        service: [payment_service, item_service]
+        service: [item_service, discord_bot, user_service, payment_service]
         include:
-          - service: payment_service
-            service_name: "Payment Service"
-            docker_image: "justingav/payment-service"
           - service: item_service
             service_name: "Item Service"
             docker_image: "justingav/item-service"
+          - service: discord_bot
+            service_name: "Discord Bot"
+            docker_image: "justingav/discord-bot"
+          - service: user_service
+            service_name: "User Service"
+            docker_image: "justingav/user-service"
+          - service: payment_service
+            service_name: "Payment Service"
+            docker_image: "justingav/payment-service"
 
     steps:
       - name: Checkout code
