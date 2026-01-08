@@ -62,6 +62,8 @@ jobs:
           tags: |
             ${{ matrix.docker_image }}:latest
             ${{ matrix.docker_image }}:${{ github.sha }}
+          cache-from: type=registry,ref=${{ matrix.docker_image }}:buildcache
+          cache-to: type=registry,ref=${{ matrix.docker_image }}:buildcache,mode=max
 
       - name: Update image tag for GitOps
         run: |
