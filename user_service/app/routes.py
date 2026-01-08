@@ -111,17 +111,12 @@ async def add_balance(
     """
     Add balance to a user's account. Requires authentication.
     """
-    # Check if user is admin or service account
-    is_admin = "bb_admin" in user_data.get("realm_access", {}).get("roles", [])
-    is_service_account = user_data.get("preferred_username", "").startswith("service-account-")
-    
-    # Try to get numeric user ID from preferred_username
     try:
-        current_user_id = int(user_data.get("preferred_username", -1))
+        card_id = int(user_data.get("preferred_username", "-1"))
     except (ValueError, TypeError):
-        current_user_id = -1
-    
-    if request.card_id != current_user_id and not is_admin and not is_service_account:
+        card_id = -1
+
+    if request.card_id != card_id and not "bb_admin" in user_data.get("realm_access", {}).get("roles", []):
         raise HTTPException(status_code=403, detail="Cannot add balance to another user's account")
     try:
         result = supabase.rpc(
