@@ -52,6 +52,7 @@ jobs:
           pip install ./common
           cd ${{ matrix.service }}
           pip install -r requirements.txt
+          pip install pytest pytest-cov
 
       - name: Run unit tests
         run: |
