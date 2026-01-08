@@ -82,10 +82,16 @@ async def test_on_command_error_missing_required_argument(monkeypatch):
     class Ctx:
         def __init__(self):
             self.message = FakeMessage()
-            self.sent = AsyncMock()
+            self.last_sent = None
+            self.sent_count = 0
 
         async def send(self, *a, **k):
-            return await self.sent(*a, **k)
+            try:
+                self.last_sent = " ".join(map(str, a))
+            except Exception:
+                self.last_sent = str(a)
+            self.sent_count += 1
+            return None
 
     ctx = Ctx()
     # MissingRequiredArgument expects a 'param' - provide a simple namespace with name
@@ -116,10 +122,16 @@ async def test_on_command_error_user_not_linked(monkeypatch):
     class Ctx:
         def __init__(self):
             self.message = FakeMessage()
-            self.sent = AsyncMock()
+            self.last_sent = None
+            self.sent_count = 0
 
         async def send(self, *a, **k):
-            return await self.sent(*a, **k)
+            try:
+                self.last_sent = " ".join(map(str, a))
+            except Exception:
+                self.last_sent = str(a)
+            self.sent_count += 1
+            return None
 
     ctx = Ctx()
     # CommandInvokeError wraps original exception
