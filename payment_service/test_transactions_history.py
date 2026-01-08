@@ -17,6 +17,7 @@ KC_PASSWORD = os.getenv("KC_PASSWORD", "hej")
 API_BASE_URL = os.getenv("API_BASE_URL", "http://payment-service-dev.ronstad.se")
 INSECURE = os.getenv("KC_INSECURE", "true").lower() == "true"
 
+
 # =========================
 # AUTH
 # =========================
@@ -39,6 +40,7 @@ def get_access_token() -> str:
         sys.exit(1)
 
     return r.json()["access_token"]
+
 
 # =========================
 # API CALL
@@ -81,6 +83,7 @@ def get_transaction_history(
     except Exception:
         print(r.text)
 
+
 # =========================
 # MAIN
 # =========================
@@ -105,6 +108,7 @@ def main():
     print("\n### 5. Pagination test")
     get_transaction_history(token, limit=10, offset=0)
     get_transaction_history(token, limit=10, offset=10)
+
 
 if __name__ == "__main__":
     main()

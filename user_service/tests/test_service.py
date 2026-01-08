@@ -81,7 +81,7 @@ class TestAuthJWT:
 
         assert response.status_code == 200
         data = response.json()
-        
+
         # Verify the mock auth data is returned
         assert data["sub"] == "test-user-id"
         assert data["preferred_username"] == "12345"  # card_id
@@ -95,9 +95,9 @@ class TestAuthJWT:
         app.dependency_overrides.clear()
         app.dependency_overrides[get_supabase] = lambda: mock_supabase
         client = TestClient(app)
-        
+
         response = client.get("/auth/jwt")
-        
+
         assert response.status_code == 401
 
 
@@ -170,7 +170,6 @@ class TestCreateUser:
 
         assert response.status_code == 500
         assert "Supabase error" in response.json()["detail"]
-
 
 
 class TestAddBalance:

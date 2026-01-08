@@ -8,7 +8,9 @@ from common.database import get_supabase
 from common.auth import require_auth
 import logging
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(name)s %(message)s')
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s %(levelname)s %(name)s %(message)s"
+)
 
 router = APIRouter()
 
@@ -17,10 +19,12 @@ router = APIRouter()
 async def health_check():
     return {"status": "healthy"}
 
+
 @router.get("/auth/jwt")
 async def get_decoded_jwt(token_data: dict = Depends(require_auth)):
     """Return the decoded JWT payload for the current request."""
     return token_data
+
 
 @router.get("/transactions/history", response_model=dict)
 async def get_transaction_history(
@@ -31,23 +35,25 @@ async def get_transaction_history(
     user_data: dict = Depends(require_auth),
 ):
     """
-    Get transaction history. 
+    Get transaction history.
     - Regular users can only see their own transactions
     - Admins and service accounts can see all transactions or filter by user_id
     """
     logger = logging.getLogger("routes")
     logger.info("/transactions/history endpoint called")
-    
+
     # Check if user is admin or service account
     is_admin = "bb_admin" in user_data.get("realm_access", {}).get("roles", [])
-    is_service_account = user_data.get("preferred_username", "").startswith("service-account-")
-    
+    is_service_account = user_data.get("preferred_username", "").startswith(
+        "service-account-"
+    )
+
     # Try to get numeric user ID from preferred_username
     try:
         current_user_id = int(user_data.get("preferred_username", -1))
     except (ValueError, TypeError):
         current_user_id = -1
-    
+
     logger.info("USER DATA: %s", user_data)
 
     # Authorization logic
@@ -59,40 +65,49 @@ async def get_transaction_history(
             query_user_id = None
         else:
             # Return specific user's transactions
-            logger.info("Admin/service account requesting transactions for user %s", user_id)
+            logger.info(
+                "Admin/service account requesting transactions for user %s", user_id
+            )
             query_user_id = user_id
     else:
         # Regular users can only see their own transactions
         if user_id is not None and user_id != current_user_id:
-            logger.warning("User %s attempted to access transactions for user %s", current_user_id, user_id)
-            raise HTTPException(status_code=403, detail="Cannot access another user's transaction history")
+            logger.warning(
+                "User %s attempted to access transactions for user %s",
+                current_user_id,
+                user_id,
+            )
+            raise HTTPException(
+                status_code=403,
+                detail="Cannot access another user's transaction history",
+            )
         query_user_id = current_user_id
         logger.info("Regular user %s requesting own transactions", current_user_id)
-    
+
     try:
         # Build query
         query = supabase.table("Transaction_History").select("*")
-        
+
         # Apply user filter if specified
         if query_user_id is not None:
             query = query.eq("user", query_user_id)
-        
+
         # Apply ordering, limit, and offset
         query = query.order("created_at", desc=True).range(offset, offset + limit - 1)
-        
+
         result = query.execute()
-        
+
         logger.info("Retrieved %s transactions", len(result.data))
-        
+
         return {
             "status": "success",
             "transactions": result.data,
             "count": len(result.data),
             "limit": limit,
             "offset": offset,
-            "user_id": query_user_id
+            "user_id": query_user_id,
         }
-        
+
     except APIError as e:
         logger.error("Database error: %s", e)
         logger.error(traceback.format_exc())
@@ -116,40 +131,49 @@ async def get_transaction_by_id(
     """
     logger = logging.getLogger("routes")
     logger.info("/transactions/history/%s endpoint called", transaction_id)
-    
+
     # Check if user is admin or service account
     is_admin = "bb_admin" in user_data.get("realm_access", {}).get("roles", [])
-    is_service_account = user_data.get("preferred_username", "").startswith("service-account-")
-    
+    is_service_account = user_data.get("preferred_username", "").startswith(
+        "service-account-"
+    )
+
     # Try to get numeric user ID from preferred_username
     try:
         current_user_id = int(user_data.get("preferred_username", -1))
     except (ValueError, TypeError):
         current_user_id = -1
-    
+
     try:
         # Fetch the transaction
-        result = supabase.table("Transaction_History").select("*").eq("id", str(transaction_id)).execute()
-        
+        result = (
+            supabase.table("Transaction_History")
+            .select("*")
+            .eq("id", str(transaction_id))
+            .execute()
+        )
+
         if not result.data:
             raise HTTPException(status_code=404, detail="Transaction not found")
-        
+
         transaction = result.data[0]
-        
+
         # Authorization check - regular users can only see their own transactions
         if not (is_admin or is_service_account):
             if transaction["user"] != current_user_id:
-                logger.warning("User %s attempted to access transaction for user %s", 
-                             current_user_id, transaction["user"])
-                raise HTTPException(status_code=403, detail="Cannot access another user's transaction")
-        
+                logger.warning(
+                    "User %s attempted to access transaction for user %s",
+                    current_user_id,
+                    transaction["user"],
+                )
+                raise HTTPException(
+                    status_code=403, detail="Cannot access another user's transaction"
+                )
+
         logger.info("Retrieved transaction %s", transaction_id)
-        
-        return {
-            "status": "success",
-            "transaction": transaction
-        }
-        
+
+        return {"status": "success", "transaction": transaction}
+
     except HTTPException:
         raise
     except APIError as e:
@@ -160,6 +184,7 @@ async def get_transaction_by_id(
         logger.error("Unexpected error: %s", e)
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Unexpected error: {e}")
+
 
 @router.post("/payments/debit", response_model=PaymentResponse)
 async def debit_payment(
@@ -176,15 +201,18 @@ async def debit_payment(
         user_data.get("preferred_username"),
     )
 
-    if request.user_id != int(user_data.get("preferred_username", -1)) and \
-       "bb_admin" not in user_data.get("realm_access", {}).get("roles", []):
+    if request.user_id != int(
+        user_data.get("preferred_username", -1)
+    ) and "bb_admin" not in user_data.get("realm_access", {}).get("roles", []):
         logger.warning(
             "Unauthorized debit attempt | target_user=%s caller=%s roles=%s",
             request.user_id,
             user_data.get("preferred_username"),
             user_data.get("realm_access", {}).get("roles", []),
         )
-        raise HTTPException(status_code=403, detail="Cannot debit another user's account")
+        raise HTTPException(
+            status_code=403, detail="Cannot debit another user's account"
+        )
 
     try:
         logger.debug(
@@ -230,7 +258,7 @@ async def debit_payment(
         else:
             raise HTTPException(status_code=500, detail=f"Database error: {e.message}")
 
-    except Exception as e:
+    except Exception:
         logger.critical(
             "Unexpected error during debit | user_id=%s",
             request.user_id,

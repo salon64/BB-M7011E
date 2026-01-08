@@ -13,7 +13,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 from typing import Optional
 from supabase import Client
-from common.database import get_supabase_client, get_supabase
+from common.database import get_supabase_client
 
 load_dotenv()
 
@@ -55,14 +55,12 @@ async def on_ready() -> None:
         logger.info("Supabase client ready")
     except Exception as e:
         logger.error(f"Failed to initialize Supabase client: {e}")
-    
+
     # Set bot status
     await bot.change_presence(
         activity=discord.Activity(
-            type=discord.ActivityType.watching,
-            name=f"{COMMAND_PREFIX}help"
+            type=discord.ActivityType.watching, name=f"{COMMAND_PREFIX}help"
         )
-        
     )
 
 
@@ -70,12 +68,16 @@ async def on_ready() -> None:
 async def on_command_error(ctx: commands.Context, error: Exception) -> None:
     """Global error handler for commands."""
     if isinstance(error, commands.CommandNotFound):
-        await ctx.send(f"❌ Command not found. Use `{COMMAND_PREFIX}help` for available commands.")
+        await ctx.send(
+            f"❌ Command not found. Use `{COMMAND_PREFIX}help` for available commands."
+        )
     elif isinstance(error, commands.MissingRequiredArgument):
         await ctx.send(f"❌ Missing required argument: `{error.param.name}`")
     elif isinstance(error, commands.MissingPermissions):
         await ctx.send("❌ You don't have permission to use this command.")
-    elif isinstance(error, commands.CommandInvokeError) and isinstance(error.original, UserNotLinkedError):
+    elif isinstance(error, commands.CommandInvokeError) and isinstance(
+        error.original, UserNotLinkedError
+    ):
         # User has not linked their Discord account
         discord_user = str(ctx.message.author.id)
         link_params = urlencode({"discord": discord_user})
@@ -103,23 +105,23 @@ async def balance(ctx: commands.Context) -> None:
     discord_id = str(ctx.message.author.id)
     card_id = get_user_card_id(discord_id)
     jwt_token = get_discord_jwt()
-    
+
     if not jwt_token:
         await ctx.send("❌ Failed to authenticate with backend services.")
         return
-    
+
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(
                 f"{USER_SERVICE_URL}/user/fetch_info",
                 json={"user_id": int(card_id)},
                 headers={"Authorization": f"Bearer {jwt_token}"},
-                timeout=10.0
+                timeout=10.0,
             )
-            
+
             if response.status_code == 200:
                 data = response.json()
-                balance_ore = data.get('balance', 0)
+                balance_ore = data.get("balance", 0)
                 balance_sek = balance_ore / 100
                 await ctx.send(
                     f"💰 **Account Info**\n"
@@ -130,7 +132,9 @@ async def balance(ctx: commands.Context) -> None:
             elif response.status_code == 404:
                 await ctx.send("❌ User not found in the system.")
             else:
-                logger.error(f"User service error: {response.status_code} - {response.text}")
+                logger.error(
+                    f"User service error: {response.status_code} - {response.text}"
+                )
                 await ctx.send("❌ Failed to fetch balance. Please try again later.")
         except httpx.RequestError as e:
             logger.error(f"Request to user service failed: {e}")
@@ -144,18 +148,18 @@ async def items(ctx: commands.Context) -> None:
     # Verify user is linked (will raise UserNotLinkedError if not)
     get_user_card_id(discord_id)
     jwt_token = get_discord_jwt()
-    
+
     if not jwt_token:
         await ctx.send("❌ Failed to authenticate with backend services.")
         return
-    
+
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(
                 f"{ITEM_SERVICE_URL}/items/list",
                 json={"active_only": True},
                 headers={"Authorization": f"Bearer {jwt_token}"},
-                timeout=10.0
+                timeout=10.0,
             )
             if response.status_code == 200:
                 data = response.json()
@@ -166,14 +170,18 @@ async def items(ctx: commands.Context) -> None:
                 # Format items list
                 items_text = "📦 **Available Items:**\n"
                 for item in items_list[:20]:  # Limit to 20 items
-                    price_ore = item['price']
+                    price_ore = item["price"]
                     price_sek = price_ore / 100
-                    items_text += f"  `{item['id']}` - **{item['name']}** - {price_sek:.2f} SEK\n"
+                    items_text += (
+                        f"  `{item['id']}` - **{item['name']}** - {price_sek:.2f} SEK\n"
+                    )
                 if len(items_list) > 20:
                     items_text += f"  ... and {len(items_list) - 20} more items"
                 await ctx.send(items_text)
             else:
-                logger.error(f"Item service error: {response.status_code} - {response.text}")
+                logger.error(
+                    f"Item service error: {response.status_code} - {response.text}"
+                )
                 await ctx.send("❌ Failed to fetch items. Please try again later.")
         except httpx.RequestError as e:
             logger.error(f"Request to item service failed: {e}")
@@ -184,17 +192,19 @@ async def items(ctx: commands.Context) -> None:
 async def buy(ctx: commands.Context, item_id: Optional[str] = None) -> None:
     """Purchase an item by ID."""
     if item_id is None:
-        await ctx.send(f"❌ Please specify an item ID. Usage: `{COMMAND_PREFIX}buy <item_id>`")
+        await ctx.send(
+            f"❌ Please specify an item ID. Usage: `{COMMAND_PREFIX}buy <item_id>`"
+        )
         return
-    
+
     discord_id = str(ctx.message.author.id)
     card_id = get_user_card_id(discord_id)
     jwt_token = get_discord_jwt()
-    
+
     if not jwt_token:
         await ctx.send("❌ Failed to authenticate with backend services.")
         return
-    
+
     async with httpx.AsyncClient() as client:
         try:
             # First, get item details to show what's being purchased
@@ -202,7 +212,7 @@ async def buy(ctx: commands.Context, item_id: Optional[str] = None) -> None:
                 f"{ITEM_SERVICE_URL}/items/fetch_info",
                 json={"item_id": item_id},
                 headers={"Authorization": f"Bearer {jwt_token}"},
-                timeout=10.0
+                timeout=10.0,
             )
             if item_response.status_code == 404:
                 await ctx.send(f"❌ Item `{item_id}` not found.")
@@ -214,15 +224,15 @@ async def buy(ctx: commands.Context, item_id: Optional[str] = None) -> None:
             item_name = item_data.get("name", "Unknown")
             item_price_ore = item_data.get("price", 0)
             item_price_sek = item_price_ore / 100
-            
+
             # Process the payment
             payment_response = await client.post(
                 f"{PAYMENT_SERVICE_URL}/payments/debit",
                 json={"user_id": int(card_id), "item_id": item_id},
                 headers={"Authorization": f"Bearer {jwt_token}"},
-                timeout=10.0
+                timeout=10.0,
             )
-            
+
             if payment_response.status_code == 200:
                 payment_data = payment_response.json()
                 new_balance_ore = payment_data.get("new_balance", 0)
@@ -234,13 +244,19 @@ async def buy(ctx: commands.Context, item_id: Optional[str] = None) -> None:
                     f"💰 New Balance: {new_balance_sek:.2f} SEK"
                 )
             elif payment_response.status_code == 402:
-                await ctx.send(f"❌ Insufficient funds to purchase **{item_name}** ({item_price_sek:.2f} SEK).")
+                await ctx.send(
+                    f"❌ Insufficient funds to purchase **{item_name}** ({item_price_sek:.2f} SEK)."
+                )
             elif payment_response.status_code == 403:
-                await ctx.send("❌ Your account is not active. Please contact an administrator.")
+                await ctx.send(
+                    "❌ Your account is not active. Please contact an administrator."
+                )
             elif payment_response.status_code == 404:
                 await ctx.send("❌ User not found in the payment system.")
             else:
-                logger.error(f"Payment service error: {payment_response.status_code} - {payment_response.text}")
+                logger.error(
+                    f"Payment service error: {payment_response.status_code} - {payment_response.text}"
+                )
                 await ctx.send("❌ Payment failed. Please try again later.")
         except httpx.RequestError as e:
             logger.error(f"Request to services failed: {e}")
@@ -248,11 +264,16 @@ async def buy(ctx: commands.Context, item_id: Optional[str] = None) -> None:
 
 
 @bot.command(name="transactions")
-async def transactions(ctx: commands.Context, user_id: Optional[str] = None, limit: Optional[str] = "20", offset: Optional[str] = "0") -> None:
+async def transactions(
+    ctx: commands.Context,
+    user_id: Optional[str] = None,
+    limit: Optional[str] = "20",
+    offset: Optional[str] = "0",
+) -> None:
     """List transaction history. Usage: `!transactions [user_id] [limit] [offset]`"""
     # Ensure user is linked; this will raise UserNotLinkedError if not
     discord_id = str(ctx.message.author.id)
-    card_id = get_user_card_id(discord_id)
+    get_user_card_id(discord_id)
     jwt_token = get_discord_jwt()
 
     if not jwt_token:
@@ -304,7 +325,7 @@ async def transactions(ctx: commands.Context, user_id: Optional[str] = None, lim
                     tx_amount = tx.get("amount") or tx.get("price") or tx.get("value")
                     if isinstance(tx_amount, (int, float)):
                         try:
-                            tx_amount_display = f"{int(tx_amount)/100:.2f} SEK"
+                            tx_amount_display = f"{int(tx_amount) / 100:.2f} SEK"
                         except Exception:
                             tx_amount_display = str(tx_amount)
                     else:
@@ -316,23 +337,31 @@ async def transactions(ctx: commands.Context, user_id: Optional[str] = None, lim
             elif response.status_code == 403:
                 await ctx.send("❌ You are not authorized to view these transactions.")
             else:
-                logger.error(f"Payment service error (transactions): {response.status_code} - {response.text}")
-                await ctx.send("❌ Failed to fetch transactions. Please try again later.")
+                logger.error(
+                    f"Payment service error (transactions): {response.status_code} - {response.text}"
+                )
+                await ctx.send(
+                    "❌ Failed to fetch transactions. Please try again later."
+                )
         except httpx.RequestError as e:
             logger.error(f"Request to payment service failed: {e}")
             await ctx.send("❌ Could not connect to payment service.")
 
 
 @bot.command(name="transaction")
-async def transaction(ctx: commands.Context, transaction_id: Optional[str] = None) -> None:
+async def transaction(
+    ctx: commands.Context, transaction_id: Optional[str] = None
+) -> None:
     """Fetch a single transaction by ID. Usage: `!transaction <transaction_id>`"""
     if not transaction_id:
-        await ctx.send(f"❌ Please specify a transaction ID. Usage: `{COMMAND_PREFIX}transaction <transaction_id>`")
+        await ctx.send(
+            f"❌ Please specify a transaction ID. Usage: `{COMMAND_PREFIX}transaction <transaction_id>`"
+        )
         return
 
     discord_id = str(ctx.message.author.id)
     # verify linked
-    card_id = get_user_card_id(discord_id)
+    get_user_card_id(discord_id)
     jwt_token = get_discord_jwt()
 
     if not jwt_token:
@@ -358,7 +387,7 @@ async def transaction(ctx: commands.Context, transaction_id: Optional[str] = Non
                 amount_display = ""
                 if isinstance(tx_amount, (int, float)):
                     try:
-                        amount_display = f"{int(tx_amount)/100:.2f} SEK"
+                        amount_display = f"{int(tx_amount) / 100:.2f} SEK"
                     except Exception:
                         amount_display = str(tx_amount)
                 else:
@@ -378,19 +407,26 @@ async def transaction(ctx: commands.Context, transaction_id: Optional[str] = Non
             elif response.status_code == 403:
                 await ctx.send("❌ You are not authorized to view this transaction.")
             else:
-                logger.error(f"Payment service error (transaction): {response.status_code} - {response.text}")
-                await ctx.send("❌ Failed to fetch transaction. Please try again later.")
+                logger.error(
+                    f"Payment service error (transaction): {response.status_code} - {response.text}"
+                )
+                await ctx.send(
+                    "❌ Failed to fetch transaction. Please try again later."
+                )
         except httpx.RequestError as e:
             logger.error(f"Request to payment service failed: {e}")
             await ctx.send("❌ Could not connect to payment service.")
+
 
 @bot.command(name="add_funds")
 async def add_funds(ctx: commands.Context, amount: Optional[str] = None) -> None:
     """Add funds to your account. Requires an image attachment as proof of payment."""
     if amount is None:
-        await ctx.send(f"❌ Please specify an amount. Usage: `{COMMAND_PREFIX}add_funds <amount>` with an image attachment")
+        await ctx.send(
+            f"❌ Please specify an amount. Usage: `{COMMAND_PREFIX}add_funds <amount>` with an image attachment"
+        )
         return
-    
+
     # Validate amount is a positive number
     try:
         amount_value = float(amount)
@@ -400,32 +436,40 @@ async def add_funds(ctx: commands.Context, amount: Optional[str] = None) -> None
     except ValueError:
         await ctx.send("❌ Invalid amount. Please enter a valid number.")
         return
-    
+
     # Check for image attachment
     if not ctx.message.attachments:
-        await ctx.send("❌ Please attach an image (receipt/proof of payment) with your request.")
+        await ctx.send(
+            "❌ Please attach an image (receipt/proof of payment) with your request."
+        )
         return
-    
+
     # Find image attachment
     image_attachment = None
-    valid_image_types = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp']
+    valid_image_types = [
+        "image/png",
+        "image/jpeg",
+        "image/jpg",
+        "image/gif",
+        "image/webp",
+    ]
     for attachment in ctx.message.attachments:
         if attachment.content_type and attachment.content_type in valid_image_types:
             image_attachment = attachment
             break
-    
+
     if not image_attachment:
         await ctx.send("❌ Please attach a valid image file (PNG, JPEG, GIF, or WebP).")
         return
-    
+
     discord_id = str(ctx.message.author.id)
     card_id = get_user_card_id(discord_id)
     jwt_token = get_discord_jwt()
-    
+
     if not jwt_token:
         await ctx.send("❌ Failed to authenticate with backend services.")
         return
-    
+
     # Call user service to add balance
     async with httpx.AsyncClient() as client:
         try:
@@ -434,25 +478,31 @@ async def add_funds(ctx: commands.Context, amount: Optional[str] = None) -> None
                 f"{USER_SERVICE_URL}/user/add_balance",
                 json={"card_id": int(card_id), "amount": amount_ore},
                 headers={"Authorization": f"Bearer {jwt_token}"},
-                timeout=10.0
+                timeout=10.0,
             )
-            
+
             if response.status_code == 200:
                 data = response.json()
-                new_balance_sek = data.get('new_balance', 0) / 100
+                new_balance_sek = data.get("new_balance", 0) / 100
                 await ctx.send(
                     f"✅ **Funds Added Successfully!**\n"
                     f"💵 Amount: {amount_value:.2f} SEK\n"
                     f"📎 Receipt: Attached\n"
                     f"💰 New Balance: {new_balance_sek:.2f} SEK"
                 )
-                logger.info(f"Funds added: user={discord_id}, amount={amount_value} SEK, receipt={image_attachment.url}")
+                logger.info(
+                    f"Funds added: user={discord_id}, amount={amount_value} SEK, receipt={image_attachment.url}"
+                )
             elif response.status_code == 403:
-                await ctx.send("❌ You don't have permission to add funds to this account.")
+                await ctx.send(
+                    "❌ You don't have permission to add funds to this account."
+                )
             elif response.status_code == 404:
                 await ctx.send("❌ User not found in the system.")
             else:
-                logger.error(f"User service error: {response.status_code} - {response.text}")
+                logger.error(
+                    f"User service error: {response.status_code} - {response.text}"
+                )
                 await ctx.send("❌ Failed to add funds. Please try again later.")
         except httpx.RequestError as e:
             logger.error(f"Request to user service failed: {e}")
@@ -465,10 +515,14 @@ async def auth_test(ctx: commands.Context) -> None:
     discord_id = str(ctx.message.author.id)
     card_id = get_user_card_id(discord_id)
     jwt_token = get_discord_jwt()
-    
+
     # Truncate JWT for display (show first 20 and last 10 chars)
-    jwt_display = f"{jwt_token[:20]}...{jwt_token[-10:]}" if jwt_token and len(jwt_token) > 30 else jwt_token
-    
+    jwt_display = (
+        f"{jwt_token[:20]}...{jwt_token[-10:]}"
+        if jwt_token and len(jwt_token) > 30
+        else jwt_token
+    )
+
     # Decode JWT to get expiration time
     expires_display = "N/A"
     if jwt_token:
@@ -481,7 +535,7 @@ async def auth_test(ctx: commands.Context) -> None:
         except Exception as e:
             logger.error(f"Failed to decode JWT: {e}")
             expires_display = "Error decoding"
-    
+
     await ctx.send(
         f"🔐 Authentication test:\n"
         f"📇 Card ID: `{card_id}`\n"
@@ -495,7 +549,7 @@ def main() -> None:
     if not DISCORD_TOKEN:
         logger.error("DISCORD_TOKEN environment variable is not set!")
         return
-    
+
     logger.info("Starting Discord bot...")
     bot.run(DISCORD_TOKEN)
 
