@@ -19,6 +19,11 @@ jobs:
     strategy:
       matrix:
         service: [payment_service, item_service]
+        include:
+          - service: payment_service
+            coverage_targets: "app,main"
+          - service: item_service
+            coverage_targets: "app"
 
     steps:
       - name: Checkout code
@@ -27,7 +32,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install dependencies
         run: |
@@ -39,7 +44,7 @@ jobs:
       - name: Run tests with coverage
         run: |
           cd ${{ matrix.service }}
-          pytest tests/ --cov=. --cov-report=term-missing --cov-fail-under=80
+          pytest tests/ --cov=${{ matrix.coverage_targets }} --cov-report=term-missing --cov-fail-under=80
 
   test-multiple-python-versions:
     name: Test ${{ matrix.service }} on Python ${{ matrix.python-version }}
@@ -47,7 +52,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ["3.10", "3.11", "3.12"]
         service: [payment_service, item_service]
 
     steps:
