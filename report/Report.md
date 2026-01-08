@@ -89,7 +89,10 @@ sequenceDiagram
 
 ## Monitoring, Metrics, Logs, Traces
 
-todo? do we have this yet?
+All microservices logg information about its actions.
+We use Envoy for inter service communication, we can then use prometeus and grafana to view traffic on our system.
+We use a pre made view from envoy (with prometues source) to have a good view of the traffic.
+Right now it only scrapes the envoy tunnels which is the bottleneck of the system, so it will give us great insight about our systems health.
 
 ---
 
