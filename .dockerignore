@@ -1,0 +1,73 @@
+# Git
+.git
+.gitignore
+.github
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+.pytest_cache
+.coverage
+htmlcov/
+*/htmlcov/
+.tox
+.mypy_cache
+.dmypy.json
+dmypy.json
+
+# Virtual environments
+venv
+env
+ENV
+.venv
+
+# IDEs
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# Tests (exclude from production builds)
+*/tests
+*/test_*
+*_test.py
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Kubernetes
+k8s/
+argocd/
+environments/
+monitoring/
+keycloak/
+
+# Logs
+*.log
+logs/
+
+# Environment files (secrets should not be in images!)
+.env
+.env.*
+
+# Misc
+*.bak
+*.tmp
+temp/
+tmp/
