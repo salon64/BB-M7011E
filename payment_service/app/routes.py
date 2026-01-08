@@ -48,6 +48,8 @@ async def get_transaction_history(
     except (ValueError, TypeError):
         current_user_id = -1
     
+    logger.info("USER DATA: %s", user_data)
+
     # Authorization logic
     if is_admin or is_service_account:
         # Admins and service accounts can query any user or all users
