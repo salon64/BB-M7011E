@@ -53,13 +53,13 @@ class TestAuthUtils:
         """Test get_jwks_client() raises HTTPException 503 on connection error."""
         # Reset the global jwks_client to None to force new client creation
         auth_module.jwks_client = None
-        
+
         def fake_pyjwkclient(*args, **kwargs):
             raise Exception("Connection failed")
-        
+
         # Patch PyJWKClient in the auth module
         monkeypatch.setattr(auth_module, "PyJWKClient", fake_pyjwkclient)
-        
+
         with pytest.raises(HTTPException) as exc:
             auth_module.get_jwks_client()
         assert exc.value.status_code == 503
@@ -71,14 +71,14 @@ class TestAuthUtils:
         mock_signing_key = Mock()
         mock_signing_key.key = "test-key"
         mock_client.get_signing_key_from_jwt.return_value = mock_signing_key
-        
+
         monkeypatch.setattr(auth_module, "get_jwks_client", lambda: mock_client)
 
         def fake_decode(*a, **k):
             raise pyjwt.ExpiredSignatureError()
 
         monkeypatch.setattr(pyjwt, "decode", fake_decode)
-        
+
         with pytest.raises(HTTPException) as exc:
             auth_module.verify_jwt_token("token")
         assert exc.value.status_code == 401
@@ -90,14 +90,14 @@ class TestAuthUtils:
         mock_signing_key = Mock()
         mock_signing_key.key = "test-key"
         mock_client.get_signing_key_from_jwt.return_value = mock_signing_key
-        
+
         monkeypatch.setattr(auth_module, "get_jwks_client", lambda: mock_client)
 
         def fake_decode(*a, **k):
             raise pyjwt.InvalidTokenError()
 
         monkeypatch.setattr(pyjwt, "decode", fake_decode)
-        
+
         with pytest.raises(HTTPException) as exc:
             auth_module.verify_jwt_token("token")
         assert exc.value.status_code == 401
@@ -107,9 +107,9 @@ class TestAuthUtils:
         """Test verify_jwt_token raises 503 on generic exception."""
         mock_client = Mock()
         mock_client.get_signing_key_from_jwt.side_effect = Exception("Unknown error")
-        
+
         monkeypatch.setattr(auth_module, "get_jwks_client", lambda: mock_client)
-        
+
         with pytest.raises(HTTPException) as exc:
             auth_module.verify_jwt_token("token")
         assert exc.value.status_code == 503
@@ -137,35 +137,35 @@ class TestAuthUtils:
         mock_signing_key = Mock()
         mock_signing_key.key = "test-key"
         mock_client.get_signing_key_from_jwt.return_value = mock_signing_key
-        
+
         expected_payload = {
             "sub": "user-123",
             "preferred_username": "testuser",
-            "realm_access": {"roles": ["user"]}
+            "realm_access": {"roles": ["user"]},
         }
-        
+
         monkeypatch.setattr(auth_module, "get_jwks_client", lambda: mock_client)
         monkeypatch.setattr(pyjwt, "decode", lambda *a, **k: expected_payload)
-        
+
         result = auth_module.verify_jwt_token("valid-token")
         assert result == expected_payload
 
 
-#class TestAuthMeEndpoint:
-    #def test_me_with_valid_jwt(self, client):
-    #    """Test /auth/me returns user info with valid JWT (mocked)."""
-    #    response = client.get("/auth/me")
-    #    assert response.status_code == 200
-    #    data = response.json()
-    #    assert data["user_id"] == "test-user-id"
-    #    assert data["username"] == "testuser"
-    #    assert data["email"] == "test@example.com"
-    #    assert "user" in data["roles"]
-    #    assert data["service"] == "user-service"
+# class TestAuthMeEndpoint:
+# def test_me_with_valid_jwt(self, client):
+#    """Test /auth/me returns user info with valid JWT (mocked)."""
+#    response = client.get("/auth/me")
+#    assert response.status_code == 200
+#    data = response.json()
+#    assert data["user_id"] == "test-user-id"
+#    assert data["username"] == "testuser"
+#    assert data["email"] == "test@example.com"
+#    assert "user" in data["roles"]
+#    assert data["service"] == "user-service"
 
-    #def test_me_with_missing_jwt(self, mock_supabase):
-    #    """Test /auth/me returns 401 if JWT is missing (no dependency override)."""
-    #    app.dependency_overrides.clear()  # Remove auth override
-    #    client = TestClient(app)
-    #    response = client.get("/auth/me")
-    #    assert response.status_code in (401, 403)
+# def test_me_with_missing_jwt(self, mock_supabase):
+#    """Test /auth/me returns 401 if JWT is missing (no dependency override)."""
+#    app.dependency_overrides.clear()  # Remove auth override
+#    client = TestClient(app)
+#    response = client.get("/auth/me")
+#    assert response.status_code in (401, 403)

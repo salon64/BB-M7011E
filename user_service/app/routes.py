@@ -1,14 +1,23 @@
 from fastapi import APIRouter, HTTPException, Depends
 from supabase import Client
 from postgrest.exceptions import APIError
-from app.models import UserCreate, addBalance, user_set_status_response, user_set_status, fetch_user_info
+from app.models import (
+    UserCreate,
+    addBalance,
+    user_set_status_response,
+    user_set_status,
+    fetch_user_info,
+)
 from common.database import get_supabase
 from keycloak import KeycloakAdmin
 from app.config import settings
 from common.auth import require_auth
-import logging, traceback
+import logging
+import traceback
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(name)s %(message)s')
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s %(levelname)s %(name)s %(message)s"
+)
 
 
 router = APIRouter()
@@ -25,8 +34,8 @@ async def health_check():
     return {"status": "healthy"}
 
 
-#@router.get("/auth/me")
-#async def get_current_user(user=Depends(keycloak.get_current_user)):
+# @router.get("/auth/me")
+# async def get_current_user(user=Depends(keycloak.get_current_user)):
 #    """Get information about the currently authenticated user"""
 #    return {
 #        "user_id": user.sub,
@@ -42,14 +51,14 @@ async def create_user(
     request: UserCreate,
     supabase: Client = Depends(get_supabase),
     # token_data: dict = Depends(require_admin),
-    #user=Depends(keycloak.get_current_user),
+    # user=Depends(keycloak.get_current_user),
 ):
     """
     Create a user in Supabase and Keycloak.
     """
     logger = logging.getLogger("routes")
     logger.info("/users endpoint called with: %s", request.dict())
-    
+
     # Create user in Supabase
     try:
         logger.info("Calling Supabase RPC create_user...")
@@ -59,7 +68,7 @@ async def create_user(
                 "card_id_input": request.card_id,
                 "first_name_input": request.first_name,
                 "last_name_input": request.last_name,
-            }, 
+            },
         ).execute()
         logger.info("Supabase RPC result: %s", db_result)
         db_result = {"status": "success", "card_id": request.card_id}
@@ -70,27 +79,35 @@ async def create_user(
     # FIXME if user creation fails in Keycloak, we should roll back the Supabase creation
     # Create user in Keycloak
     try:
-        logger.info("Creating Keycloak admin connection for realm: %s", settings.keycloak_realm)
+        logger.info(
+            "Creating Keycloak admin connection for realm: %s", settings.keycloak_realm
+        )
         keycloak_admin = KeycloakAdmin(
             server_url=settings.keycloak_url,
             username=settings.keycloak_admin_user,
-            password=settings.keycloak_admin_pass, 
+            password=settings.keycloak_admin_pass,
             realm_name=settings.keycloak_realm,
             client_id="admin-cli",
-            verify=False  # Set to True if using trusted SSL certs
+            verify=False,  # Set to True if using trusted SSL certs
         )
         logger.info("Keycloak admin authenticated successfully")
-        
-        logger.info("Creating user in Keycloak: email=%s, first_name=%s, last_name=%s", 
-                    request.email, request.first_name, request.last_name)
-        user_id = keycloak_admin.create_user({
-            "email": request.email,
-            "username": request.card_id,
-            "enabled": True,
-            "firstName": request.first_name,
-            "lastName": request.last_name,
-            "credentials": [{"value": request.password, "type": "password"}]
-        })
+
+        logger.info(
+            "Creating user in Keycloak: email=%s, first_name=%s, last_name=%s",
+            request.email,
+            request.first_name,
+            request.last_name,
+        )
+        user_id = keycloak_admin.create_user(
+            {
+                "email": request.email,
+                "username": request.card_id,
+                "enabled": True,
+                "firstName": request.first_name,
+                "lastName": request.last_name,
+                "credentials": [{"value": request.password, "type": "password"}],
+            }
+        )
         logger.info("User created in Keycloak with ID: %s", user_id)
         kc_result = {"status": "created", "user_id": user_id}
     except Exception as e:
@@ -98,7 +115,7 @@ async def create_user(
         logger.error("Error type: %s", type(e).__name__)
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Keycloak error: {e}")
-    
+
     return {"db": db_result, "keycloak": kc_result}
 
 
@@ -116,8 +133,12 @@ async def add_balance(
     except (ValueError, TypeError):
         card_id = -1
 
-    if request.card_id != card_id and not "bb_admin" in user_data.get("realm_access", {}).get("roles", []):
-        raise HTTPException(status_code=403, detail="Cannot add balance to another user's account")
+    if request.card_id != card_id and "bb_admin" not in user_data.get(
+        "realm_access", {}
+    ).get("roles", []):
+        raise HTTPException(
+            status_code=403, detail="Cannot add balance to another user's account"
+        )
     try:
         result = supabase.rpc(
             "add_balance",
@@ -137,7 +158,8 @@ async def add_balance(
         raise HTTPException(
             status_code=500, detail=f"An unexpected error occurred: {str(e)}"
         )
-    
+
+
 @router.post("/user/set_status")
 async def set_user_status(
     request: user_set_status,
@@ -148,8 +170,10 @@ async def set_user_status(
     Set a user's active status. Requires authentication.
     """
 
-    if not "bb_admin" in user_data.get("realm_access", {}).get("roles", []):
-        raise HTTPException(status_code=403, detail="BB Admin privileges required to set user status")
+    if "bb_admin" not in user_data.get("realm_access", {}).get("roles", []):
+        raise HTTPException(
+            status_code=403, detail="BB Admin privileges required to set user status"
+        )
 
     try:
         result = supabase.rpc(
@@ -165,16 +189,21 @@ async def set_user_status(
         if "user not found" in error_msg:
             raise HTTPException(status_code=404, detail="User not found")
         elif "user status is already active=true" in error_msg:
-            raise HTTPException(status_code=400, detail="User status is already active=TRUE")
+            raise HTTPException(
+                status_code=400, detail="User status is already active=TRUE"
+            )
         elif "user status is already active=false" in error_msg:
-            raise HTTPException(status_code=400, detail="User status is already active=FALSE")
+            raise HTTPException(
+                status_code=400, detail="User status is already active=FALSE"
+            )
         else:
             raise HTTPException(status_code=500, detail=f"Database error: {e.message}")
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"An unexpected error occurred: {str(e)}"
         )
-    
+
+
 @router.post("/user/fetch_info")
 async def fetch_user_info(
     request: fetch_user_info,
@@ -192,8 +221,14 @@ async def fetch_user_info(
         current_user_id = -1
     is_admin = "bb_admin" in user_data.get("realm_access", {}).get("roles", [])
     if request.user_id != current_user_id and not is_admin:
-        logger.warning("Access denied: user_id=%s attempted to fetch info for user_id=%s", current_user_id, request.user_id)
-        raise HTTPException(status_code=403, detail="Cannot fetch another user's information")
+        logger.warning(
+            "Access denied: user_id=%s attempted to fetch info for user_id=%s",
+            current_user_id,
+            request.user_id,
+        )
+        raise HTTPException(
+            status_code=403, detail="Cannot fetch another user's information"
+        )
     try:
         result = supabase.rpc(
             "fetch_user_info",
@@ -207,10 +242,10 @@ async def fetch_user_info(
             logger.warning("User not found for user_id=%s", request.user_id)
             raise HTTPException(status_code=404, detail="User not found")
         return {
-            "first_name": user_info['first_name'],
-            "last_name": user_info['last_name'],
-            "balance": user_info['balance'],
-            "active": user_info['active'],
+            "first_name": user_info["first_name"],
+            "last_name": user_info["last_name"],
+            "balance": user_info["balance"],
+            "active": user_info["active"],
         }
     except APIError as e:
         logger.error("APIError in fetch_user_info: %s", e, exc_info=True)
