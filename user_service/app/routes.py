@@ -114,8 +114,12 @@ async def add_balance(
     """
     Add balance to a user's account. Requires authentication.
     """
+    try:
+        card_id = int(user_data.get("preferred_username", "-1"))
+    except (ValueError, TypeError):
+        card_id = -1
 
-    if request.card_id != int(user_data.get("preferred_username", -1)) and not "bb_admin" in user_data.get("realm_access", {}).get("roles", []):
+    if request.card_id != card_id and not "bb_admin" in user_data.get("realm_access", {}).get("roles", []):
         raise HTTPException(status_code=403, detail="Cannot add balance to another user's account")
     try:
         result = supabase.rpc(
@@ -183,8 +187,12 @@ async def fetch_user_info(
     """
     Fetch user information by user ID.
     """
+    try:
+        card_id = int(user_data.get("preferred_username", "-1"))
+    except (ValueError, TypeError):
+        card_id = -1
 
-    if request.user_id != int(user_data.get("preferred_username", -1)) and not "bb_admin" in user_data.get("realm_access", {}).get("roles", []):
+    if request.user_id != card_id and not "bb_admin" in user_data.get("realm_access", {}).get("roles", []):
         raise HTTPException(status_code=403, detail="Cannot fetch another user's information")
     try:
         result = supabase.rpc(
