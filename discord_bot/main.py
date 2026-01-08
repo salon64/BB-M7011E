@@ -91,7 +91,7 @@ async def on_command_error(ctx: commands.Context, error: Exception) -> None:
         await ctx.send("❌ An error occurred while processing your command.")
 
 
-@bot.command(name="ping")
+@bot.command(name="ping", aliases=["p"])
 async def ping(ctx: commands.Context) -> None:
     """Check if the bot is responsive."""
     latency = round(bot.latency * 1000)
@@ -99,7 +99,7 @@ async def ping(ctx: commands.Context) -> None:
     await ctx.send(f"🏓 Pong! Latency: {latency}ms, user is {user}")
 
 
-@bot.command(name="balance")
+@bot.command(name="balance", aliases=["b"])
 async def balance(ctx: commands.Context) -> None:
     """Check your account balance."""
     discord_id = str(ctx.message.author.id)
@@ -141,7 +141,7 @@ async def balance(ctx: commands.Context) -> None:
             await ctx.send("❌ Could not connect to user service.")
 
 
-@bot.command(name="items")
+@bot.command(name="items", aliases=["i"])
 async def items(ctx: commands.Context) -> None:
     """List available items for purchase."""
     discord_id = str(ctx.message.author.id)
@@ -188,7 +188,7 @@ async def items(ctx: commands.Context) -> None:
             await ctx.send("❌ Could not connect to item service.")
 
 
-@bot.command(name="buy")
+@bot.command(name="buy", aliases=["purchase"])
 async def buy(ctx: commands.Context, item_id: Optional[str] = None) -> None:
     """Purchase an item by ID."""
     if item_id is None:
@@ -263,7 +263,7 @@ async def buy(ctx: commands.Context, item_id: Optional[str] = None) -> None:
             await ctx.send("❌ Could not connect to backend services.")
 
 
-@bot.command(name="transactions")
+@bot.command(name="transactions", aliases=["t"])
 async def transactions(
     ctx: commands.Context,
     user_id: Optional[str] = None,
@@ -348,7 +348,7 @@ async def transactions(
             await ctx.send("❌ Could not connect to payment service.")
 
 
-@bot.command(name="transaction")
+@bot.command(name="transaction", aliases=["td"])
 async def transaction(
     ctx: commands.Context, transaction_id: Optional[str] = None
 ) -> None:
@@ -418,7 +418,7 @@ async def transaction(
             await ctx.send("❌ Could not connect to payment service.")
 
 
-@bot.command(name="add_funds")
+@bot.command(name="add_funds", aliases=["deposit"])
 async def add_funds(ctx: commands.Context, amount: Optional[str] = None) -> None:
     """Add funds to your account. Requires an image attachment as proof of payment."""
     if amount is None:
@@ -509,7 +509,7 @@ async def add_funds(ctx: commands.Context, amount: Optional[str] = None) -> None
             await ctx.send("❌ Could not connect to user service.")
 
 
-@bot.command(name="auth_test")
+@bot.command(name="auth_test", aliases=["auth"])
 async def auth_test(ctx: commands.Context) -> None:
     """Test authentication - returns user's card_id and bot JWT"""
     discord_id = str(ctx.message.author.id)
