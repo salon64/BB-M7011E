@@ -18,7 +18,7 @@ jobs:
       pull-requests: write
     strategy:
       matrix:
-        service: [payment_service, item_service]
+        service: [payment_service, item_service, discord_bot]
 
     steps:
       - name: Checkout code
@@ -27,7 +27,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install dependencies
         run: |
@@ -47,8 +47,8 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ['3.10', '3.11', '3.12']
-        service: [payment_service, item_service]
+        python-version: ["3.10", "3.11", "3.12"]
+        service: [payment_service, item_service, discord_bot]
 
     steps:
       - name: Checkout code

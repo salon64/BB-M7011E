@@ -5,7 +5,7 @@ on:
     branches: [main, feat/payment-service]
   pull_request:
     branches: [main]
-  workflow_call:  
+  workflow_call:
 
 permissions:
   contents: read
@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [payment_service, item_service]
+        service: [payment_service, item_service, discord_bot]
         include:
           - service: payment_service
             coverage_targets: "app,main"
@@ -24,6 +24,9 @@ jobs:
           - service: item_service
             coverage_targets: "app"
             service_name: "item-service"
+          - service: discord_bot
+            coverage_targets: "app"
+            service_name: "discord-bot"
 
     steps:
       - name: Checkout code
@@ -32,7 +35,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Cache pip dependencies
         uses: actions/cache@v3
@@ -64,7 +67,7 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           files: ./${{ matrix.service }}/coverage.xml
-          flags: backend
+          flags: ${{ matrix.service }}
           name: ${{ matrix.service_name }}-coverage
 
   lint:
@@ -72,7 +75,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [payment_service, item_service]
+        service: [payment_service, item_service, discord_bot]
 
     steps:
       - name: Checkout code
@@ -81,7 +84,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install linters
         run: |
@@ -107,7 +110,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [payment_service, item_service]
+        service: [payment_service, item_service, discord_bot]
 
     steps:
       - name: Checkout code
@@ -116,24 +119,26 @@ jobs:
       - name: Run Trivy vulnerability scanner (filesystem)
         uses: aquasecurity/trivy-action@master
         with:
-          scan-type: 'fs'
-          scan-ref: './${{ matrix.service }}'
-          format: 'table'
-          exit-code: '1'
+          scan-type: "fs"
+          scan-ref: "./${{ matrix.service }}"
+          format: "table"
+          exit-code: "1"
           ignore-unfixed: true
-          severity: 'CRITICAL,HIGH'
+          severity: "CRITICAL,HIGH"
 
   docker-security:
     name: Docker Image Security - ${{ matrix.service }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [payment_service, item_service]
+        service: [payment_service, item_service, discord_bot]
         include:
           - service: payment_service
             image_name: "payment-service"
           - service: item_service
             image_name: "item-service"
+          - service: discord_bot
+            image_name: "discord-bot"
 
     steps:
       - name: Checkout code
@@ -146,8 +151,8 @@ jobs:
       - name: Run Trivy vulnerability scanner (image)
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: '${{ matrix.image_name }}:test'
-          format: 'table'
-          exit-code: '1'
+          image-ref: "${{ matrix.image_name }}:test"
+          format: "table"
+          exit-code: "1"
           ignore-unfixed: true
-          severity: 'CRITICAL,HIGH'
+          severity: "CRITICAL,HIGH"
