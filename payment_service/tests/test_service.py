@@ -336,7 +336,7 @@ class TestDebitPayment:
 
     # ========== Lifespan status testing =========
 
-    def test_lifespan_success(monkeypatch, caplog):
+    def test_lifespan_success(self, monkeypatch, caplog):
         class FakeClient:
             def table(self, *args, **kwargs):
                 class Q:
@@ -355,7 +355,7 @@ class TestDebitPayment:
 
         assert "Supabase connection established successfully" in caplog.text
 
-    def test_lifespan_failure(monkeypatch, caplog):
+    def test_lifespan_failure(self, monkeypatch, caplog):
         monkeypatch.setattr(main, "get_supabase_client", lambda: (_ for _ in ()).throw(RuntimeError("no db")))
         caplog.set_level(logging.ERROR)
 
