@@ -246,6 +246,144 @@ async def buy(ctx: commands.Context, item_id: Optional[str] = None) -> None:
             logger.error(f"Request to services failed: {e}")
             await ctx.send("❌ Could not connect to backend services.")
 
+
+@bot.command(name="transactions")
+async def transactions(ctx: commands.Context, user_id: Optional[str] = None, limit: Optional[str] = "20", offset: Optional[str] = "0") -> None:
+    """List transaction history. Usage: `!transactions [user_id] [limit] [offset]`"""
+    # Ensure user is linked; this will raise UserNotLinkedError if not
+    discord_id = str(ctx.message.author.id)
+    card_id = get_user_card_id(discord_id)
+    jwt_token = get_discord_jwt()
+
+    if not jwt_token:
+        await ctx.send("❌ Failed to authenticate with backend services.")
+        return
+
+    # Parse optional params
+    query_params = {}
+    try:
+        limit_v = int(limit) if limit is not None else 20
+    except ValueError:
+        await ctx.send("❌ Invalid `limit` parameter. It must be an integer.")
+        return
+    try:
+        offset_v = int(offset) if offset is not None else 0
+    except ValueError:
+        await ctx.send("❌ Invalid `offset` parameter. It must be an integer.")
+        return
+
+    # Only include user_id if provided (admins/service accounts can pass this)
+    if user_id is not None:
+        try:
+            query_params["user_id"] = int(user_id)
+        except ValueError:
+            await ctx.send("❌ Invalid `user_id`. It must be an integer.")
+            return
+
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                f"{PAYMENT_SERVICE_URL}/transactions/history",
+                params={**query_params, "limit": limit_v, "offset": offset_v},
+                headers={"Authorization": f"Bearer {jwt_token}"},
+                timeout=10.0,
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                transactions_list = data.get("transactions", [])
+                if not transactions_list:
+                    await ctx.send("📭 No transactions found.")
+                    return
+
+                # Format a concise list (limit to 50 shown)
+                text = f"📜 **Transaction History** (showing {len(transactions_list)} items)\n"
+                for tx in transactions_list[:50]:
+                    tx_id = tx.get("id")
+                    tx_user = tx.get("user")
+                    tx_amount = tx.get("amount") or tx.get("price") or tx.get("value")
+                    if isinstance(tx_amount, (int, float)):
+                        try:
+                            tx_amount_display = f"{int(tx_amount)/100:.2f} SEK"
+                        except Exception:
+                            tx_amount_display = str(tx_amount)
+                    else:
+                        tx_amount_display = str(tx_amount)
+                    tx_time = tx.get("created_at") or tx.get("timestamp") or ""
+                    text += f"• `{tx_id}` user={tx_user} amount={tx_amount_display} at {tx_time}\n"
+
+                await ctx.send(text)
+            elif response.status_code == 403:
+                await ctx.send("❌ You are not authorized to view these transactions.")
+            else:
+                logger.error(f"Payment service error (transactions): {response.status_code} - {response.text}")
+                await ctx.send("❌ Failed to fetch transactions. Please try again later.")
+        except httpx.RequestError as e:
+            logger.error(f"Request to payment service failed: {e}")
+            await ctx.send("❌ Could not connect to payment service.")
+
+
+@bot.command(name="transaction")
+async def transaction(ctx: commands.Context, transaction_id: Optional[str] = None) -> None:
+    """Fetch a single transaction by ID. Usage: `!transaction <transaction_id>`"""
+    if not transaction_id:
+        await ctx.send(f"❌ Please specify a transaction ID. Usage: `{COMMAND_PREFIX}transaction <transaction_id>`")
+        return
+
+    discord_id = str(ctx.message.author.id)
+    # verify linked
+    card_id = get_user_card_id(discord_id)
+    jwt_token = get_discord_jwt()
+
+    if not jwt_token:
+        await ctx.send("❌ Failed to authenticate with backend services.")
+        return
+
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                f"{PAYMENT_SERVICE_URL}/transactions/history/{transaction_id}",
+                headers={"Authorization": f"Bearer {jwt_token}"},
+                timeout=10.0,
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                tx = data.get("transaction") or {}
+                tx_id = tx.get("id")
+                tx_user = tx.get("user")
+                tx_amount = tx.get("amount") or tx.get("price") or tx.get("value")
+                tx_time = tx.get("created_at") or tx.get("timestamp") or ""
+                tx_desc = tx.get("description") or tx.get("note") or ""
+                amount_display = ""
+                if isinstance(tx_amount, (int, float)):
+                    try:
+                        amount_display = f"{int(tx_amount)/100:.2f} SEK"
+                    except Exception:
+                        amount_display = str(tx_amount)
+                else:
+                    amount_display = str(tx_amount)
+
+                text = (
+                    f"📘 **Transaction**\n"
+                    f"ID: `{tx_id}`\n"
+                    f"User: {tx_user}\n"
+                    f"Amount: {amount_display}\n"
+                    f"Time: {tx_time}\n"
+                    f"Desc: {tx_desc}"
+                )
+                await ctx.send(text)
+            elif response.status_code == 404:
+                await ctx.send("❌ Transaction not found.")
+            elif response.status_code == 403:
+                await ctx.send("❌ You are not authorized to view this transaction.")
+            else:
+                logger.error(f"Payment service error (transaction): {response.status_code} - {response.text}")
+                await ctx.send("❌ Failed to fetch transaction. Please try again later.")
+        except httpx.RequestError as e:
+            logger.error(f"Request to payment service failed: {e}")
+            await ctx.send("❌ Could not connect to payment service.")
+
 @bot.command(name="add_funds")
 async def add_funds(ctx: commands.Context, amount: Optional[str] = None) -> None:
     """Add funds to your account. Requires an image attachment as proof of payment."""
