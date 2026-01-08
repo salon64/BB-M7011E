@@ -5,6 +5,8 @@ import os
 import logging
 import discord
 import httpx
+import jwt
+from datetime import datetime
 from urllib.parse import urlencode
 from app.auth import get_user_card_id, get_discord_jwt, UserNotLinkedError
 from discord.ext import commands
@@ -149,27 +151,26 @@ async def items(ctx: commands.Context) -> None:
     
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.get(
-                f"{ITEM_SERVICE_URL}/items",
-                params={"active": "true"},
+            response = await client.post(
+                f"{ITEM_SERVICE_URL}/items/list",
+                json={"active_only": True},
                 headers={"Authorization": f"Bearer {jwt_token}"},
                 timeout=10.0
             )
-            
             if response.status_code == 200:
-                items_list = response.json()
+                data = response.json()
+                items_list = data.get("items", [])
                 if not items_list:
                     await ctx.send("📦 No items available at the moment.")
                     return
-                
                 # Format items list
                 items_text = "📦 **Available Items:**\n"
                 for item in items_list[:20]:  # Limit to 20 items
-                    items_text += f"  `{item['id']}` - **{item['name']}** - {item['price']} credits\n"
-                
+                    price_ore = item['price']
+                    price_sek = price_ore / 100
+                    items_text += f"  `{item['id']}` - **{item['name']}** - {price_sek:.2f} SEK\n"
                 if len(items_list) > 20:
                     items_text += f"  ... and {len(items_list) - 20} more items"
-                
                 await ctx.send(items_text)
             else:
                 logger.error(f"Item service error: {response.status_code} - {response.text}")
@@ -197,22 +198,22 @@ async def buy(ctx: commands.Context, item_id: Optional[str] = None) -> None:
     async with httpx.AsyncClient() as client:
         try:
             # First, get item details to show what's being purchased
-            item_response = await client.get(
-                f"{ITEM_SERVICE_URL}/items/{item_id}",
+            item_response = await client.post(
+                f"{ITEM_SERVICE_URL}/items/fetch_info",
+                json={"item_id": item_id},
                 headers={"Authorization": f"Bearer {jwt_token}"},
                 timeout=10.0
             )
-            
             if item_response.status_code == 404:
                 await ctx.send(f"❌ Item `{item_id}` not found.")
                 return
             elif item_response.status_code != 200:
                 await ctx.send("❌ Failed to fetch item details.")
                 return
-            
             item_data = item_response.json()
             item_name = item_data.get("name", "Unknown")
-            item_price = item_data.get("price", 0)
+            item_price_ore = item_data.get("price", 0)
+            item_price_sek = item_price_ore / 100
             
             # Process the payment
             payment_response = await client.post(
@@ -224,15 +225,16 @@ async def buy(ctx: commands.Context, item_id: Optional[str] = None) -> None:
             
             if payment_response.status_code == 200:
                 payment_data = payment_response.json()
-                new_balance = payment_data.get("new_balance", "N/A")
+                new_balance_ore = payment_data.get("new_balance", 0)
+                new_balance_sek = new_balance_ore / 100
                 await ctx.send(
                     f"✅ **Purchase Successful!**\n"
                     f"🛒 Item: **{item_name}**\n"
-                    f"💵 Price: {item_price} credits\n"
-                    f"💰 New Balance: {new_balance} credits"
+                    f"💵 Price: {item_price_sek:.2f} SEK\n"
+                    f"💰 New Balance: {new_balance_sek:.2f} SEK"
                 )
             elif payment_response.status_code == 402:
-                await ctx.send(f"❌ Insufficient funds to purchase **{item_name}** ({item_price} credits).")
+                await ctx.send(f"❌ Insufficient funds to purchase **{item_name}** ({item_price_sek:.2f} SEK).")
             elif payment_response.status_code == 403:
                 await ctx.send("❌ Your account is not active. Please contact an administrator.")
             elif payment_response.status_code == 404:
@@ -329,10 +331,24 @@ async def auth_test(ctx: commands.Context) -> None:
     # Truncate JWT for display (show first 20 and last 10 chars)
     jwt_display = f"{jwt_token[:20]}...{jwt_token[-10:]}" if jwt_token and len(jwt_token) > 30 else jwt_token
     
+    # Decode JWT to get expiration time
+    expires_display = "N/A"
+    if jwt_token:
+        try:
+            decoded = jwt.decode(jwt_token, options={"verify_signature": False})
+            if "exp" in decoded:
+                exp_timestamp = decoded["exp"]
+                exp_datetime = datetime.fromtimestamp(exp_timestamp)
+                expires_display = exp_datetime.strftime("%Y-%m-%d %H:%M:%S")
+        except Exception as e:
+            logger.error(f"Failed to decode JWT: {e}")
+            expires_display = "Error decoding"
+    
     await ctx.send(
         f"🔐 Authentication test:\n"
         f"📇 Card ID: `{card_id}`\n"
-        f"🎫 JWT: `{jwt_display}`"
+        f"🎫 JWT: `{jwt_display}`\n"
+        f"⏰ Expires: `{expires_display}`"
     )
 
 
