@@ -379,6 +379,12 @@ class TestTransactionHistory:
             def select(self, *a, **k):
                 return self
 
+            def order(self, *a, **k):
+                return self
+
+            def range(self, *a, **k):
+                return self
+
             def execute(self):
                 raise APIError({"message": "DB down"})
 
@@ -404,6 +410,12 @@ class TestTransactionHistory:
 
         class CrashQuery:
             def select(self, *a, **k):
+                return self
+
+            def order(self, *a, **k):
+                return self
+
+            def range(self, *a, **k):
                 return self
 
             def execute(self):
