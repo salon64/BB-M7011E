@@ -16,7 +16,7 @@ spec:
       - name: item-service
         image: {{ .Values.itemService.image }}:{{ .Values.itemService.tag }}
         ports:
-        - containerPort: 8003
+        - containerPort: 8004
         resources:
           requests:
             memory: {{ .Values.itemService.resources.requests.memory | default "60Mi" }}
@@ -25,30 +25,50 @@ spec:
             memory: {{ .Values.itemService.resources.limits.memory | default "120Mi" }}
             cpu: {{ .Values.itemService.resources.limits.cpu | default "10m" }}
         env:
-        - name: SUPABASE_URL
-          value: "http://supabase:8000"
-        - name: SUPABASE_KEY
-          valueFrom:
-            secretKeyRef:
-              name: supabase-secret
-              key: SUPABASE_KEY
-        - name: PRODUCTS_SERVICE_URL
-          value: "http://products-service:8001"
-        - name: KEYCLOAK_URL
-          value: '{{ .Values.itemService.keycloakUrl | default "http://keycloak:8080" }}'
-        - name: KEYCLOAK_REALM
-          value: '{{ .Values.itemService.keycloakRealm | default "BB" }}'
-        - name: INSECURE
-          value: '{{ .Values.itemService.insecure | default "false" }}'
+          - name: SUPABASE_URL
+            value: "http://supabase:8000"
+          - name: SUPABASE_KEY
+            valueFrom:
+              secretKeyRef:
+                name: supabase-secret
+                key: SUPABASE_KEY
+          - name: KEYCLOAK_URL
+            value: '{{ .Values.itemService.keycloakUrl | default "http://keycloak:8080" }}'
+          - name: KEYCLOAK_REALM
+            value: '{{ .Values.itemService.keycloakRealm | default "BB" }}'
+          - name: KEYCLOAK_ADMIN_USER
+            valueFrom:
+              secretKeyRef:
+                name: keycloak-secret
+                key: KEYCLOAK_ADMIN_USER
+          - name: KEYCLOAK_ADMIN_PASS
+            valueFrom:
+              secretKeyRef:
+                name: keycloak-secret
+                key: KEYCLOAK_ADMIN_PASS
+          - name: KEYCLOAK_CLIENT_ID
+            valueFrom:
+              secretKeyRef:
+                name: keycloak-secret
+                key: KEYCLOAK_CLIENT_ID
+          - name: KEYCLOAK_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: keycloak-secret
+                key: KEYCLOAK_CLIENT_SECRET
+          - name: KEYCLOAK_CALLBACK_URI
+            value: "http://item-service:8004/callback"
+          - name: INSECURE
+            value: '{{ .Values.itemService.insecure | default "false" }}'
         livenessProbe:
           httpGet:
             path: /health
-            port: 8003
+            port: 8004
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /health
-            port: 8003
+            port: 8004
           initialDelaySeconds: 5
           periodSeconds: 5

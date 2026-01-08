@@ -1,6 +1,7 @@
+
 # Database Setup Guide
 
-Follow tutorial: https://www.youtube.com/watch?v=Gyh0c8pMmhE
+This guide covers how to set up the Supabase database schema and seed it with example data.
 
 ---
 

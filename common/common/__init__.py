@@ -14,6 +14,11 @@ from common.auth import (
     INSECURE,
 )
 
+from common.database import (
+    get_supabase_client,
+    get_supabase,
+)
+
 __all__ = [
     "require_auth",
     "require_admin",
@@ -25,4 +30,6 @@ __all__ = [
     "KEYCLOAK_REALM",
     "CERTS_URL",
     "INSECURE",
+    "get_supabase_client",
+    "get_supabase",
 ]

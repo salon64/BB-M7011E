@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 from unittest.mock import Mock, patch
 from postgrest.exceptions import APIError
 from main import app
-from app.database import get_supabase
+from common.database import get_supabase
 from common.auth import require_auth
 
 

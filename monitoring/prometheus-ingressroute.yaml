@@ -1,0 +1,15 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: prometheus-ingress
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`prometheus.ronstad.se`)
+      kind: Rule
+      services:
+        - name: prometheus
+          port: 9090
+  tls:
+    certResolver: letsencrypt

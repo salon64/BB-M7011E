@@ -6,6 +6,6 @@ spec:
   selector:
     app: {{ .Values.itemService.name }}
   ports:
-    - port: 8003
-      targetPort: 8003
+    - port: 8004
+      targetPort: 8004
   type: ClusterIP

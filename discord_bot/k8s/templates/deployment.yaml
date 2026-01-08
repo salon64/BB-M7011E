@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: discord-bot
+  labels:
+    app: discord-bot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: discord-bot
+  template:
+    metadata:
+      labels:
+        app: discord-bot
+    spec:
+      containers:
+        - name: discord-bot
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: DISCORD_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: discord-bot-secrets
+                  key: discord-token
+            - name: DISCORD_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: discord-bot-secrets
+                  key: discord-client-secret
+            - name: DISCORD_CLIENT_ID
+              value: "{{ .Values.keycloak.discordClientId }}"
+            - name: KEYCLOAK_URL
+              value: "{{ .Values.keycloak.url }}"
+            - name: KEYCLOAK_REALM
+              value: "{{ .Values.keycloak.realm }}"
+            - name: SUPABASE_URL
+              value: "{{ .Values.supabase.url }}"
+            - name: SUPABASE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-secret
+                  key: SUPABASE_KEY
+            - name: INSECURE
+              value: '{{ .Values.insecure | default "false" }}'
+            - name: JWT_CACHE_TTL
+              value: "{{ .Values.jwtMaxCacheTtl }}"
+            - name: ACCOUNT_LINK_URL
+              value: "{{ .Values.accountLinkUrl }}"
+            - name: COMMAND_PREFIX
+              value: "{{ .Values.commandPrefix }}"
+            - name: USER_SERVICE_URL
+              value: "{{ .Values.services.userService }}"
+            - name: PAYMENT_SERVICE_URL
+              value: "{{ .Values.services.paymentService }}"
+            - name: ITEM_SERVICE_URL
+              value: "{{ .Values.services.itemService }}"
+            - name: LOG_LEVEL
+              value: "{{ .Values.logLevel }}"
+          resources:
+            limits:
+              cpu: {{ .Values.resources.limits.cpu }}
+              memory: {{ .Values.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.resources.requests.cpu }}
+              memory: {{ .Values.resources.requests.memory }}

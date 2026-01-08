@@ -4,7 +4,7 @@ from app.routes import router
 from contextlib import asynccontextmanager
 import logging
 from app.logging_config import setup_logging
-from app.database import get_supabase_client
+from common.database import get_supabase_client
 
 setup_logging()
 logger = logging.getLogger(__name__)

@@ -1,0 +1,5 @@
+discord.py>=2.3.0
+python-dotenv>=1.0.0
+aiohttp>=3.9.0
+httpx>=0.25.0
+supabase==2.27.0

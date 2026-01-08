@@ -1,31 +1,41 @@
-FROM python:3.11-slim
+FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
-# Install curl for healthcheck
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# Create and activate a virtual environment
+ENV VIRTUAL_ENV=/opt/venv
+RUN python3 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Copy and install common package first
-COPY common/ ./common/
-RUN pip install --no-cache-dir ./common
+COPY common /app/common
+RUN rm -rf /app/common/bb_common.egg-info && pip install --no-cache-dir /app/common
 
-# Install dependencies
+# Install dependencies into the virtual environment
 COPY item_service/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application
-COPY item_service/app/ ./app/
+# Create the production image
+FROM python:3.11-slim
 
-# Create non-root user
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+WORKDIR /app
+# Copy the virtual environment from the builder
+COPY --from=builder /opt/venv /opt/venv
+
+# Copy application code
+COPY item_service/ .
+
+# Activate the virtual environment
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Create a non-root user and switch to it
+RUN useradd --create-home appuser
 USER appuser
 
-# Expose port
-EXPOSE 8003
+EXPOSE 8004
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8003/health || exit 1
+    CMD python -c "import requests; requests.get('http://localhost:8004/health')"
 
-# Run application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8003"]
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8004"]
