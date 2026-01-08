@@ -1,4 +1,5 @@
 from unittest.mock import Mock, patch
+import requests
 import app.auth as auth
 import pytest
 import app.services as services
@@ -41,7 +42,7 @@ class TestAuth:
         monkeypatch.setenv("DISCORD_CLIENT_ID", "cid")
         monkeypatch.setenv("DISCORD_CLIENT_SECRET", "secret")
 
-        with patch("app.auth.requests.post", side_effect=Exception("netfail")):
+        with patch("app.auth.requests.post", side_effect=requests.RequestException("netfail")):
             auth._discord_jwt = None
             auth._discord_jwt_expiry = 0
             token = auth.get_discord_jwt()
