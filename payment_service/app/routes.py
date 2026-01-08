@@ -33,8 +33,12 @@ async def debit_payment(
         A `PaymentResponse` object with the user's ID and their new balance.
 
     """
+    try:
+        card_id = int(user_data.get("preferred_username", "-1"))
+    except (ValueError, TypeError):
+        card_id = -1
 
-    if request.user_id != int(user_data.get("preferred_username", -1)) and "bb_admin" not in user_data.get("realm_access", {}).get("roles", []):
+    if request.user_id != card_id and "bb_admin" not in user_data.get("realm_access", {}).get("roles", []):
         raise HTTPException(status_code=403, detail="Cannot debit another user's account")
     try:
         result = supabase.rpc(
