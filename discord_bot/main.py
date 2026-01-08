@@ -165,7 +165,9 @@ async def items(ctx: commands.Context) -> None:
                 # Format items list
                 items_text = "📦 **Available Items:**\n"
                 for item in items_list[:20]:  # Limit to 20 items
-                    items_text += f"  `{item['id']}` - **{item['name']}** - {item['price']} credits\n"
+                    price_ore = item['price']
+                    price_sek = price_ore / 100
+                    items_text += f"  `{item['id']}` - **{item['name']}** - {price_sek:.2f} SEK\n"
                 
                 if len(items_list) > 20:
                     items_text += f"  ... and {len(items_list) - 20} more items"
@@ -212,7 +214,8 @@ async def buy(ctx: commands.Context, item_id: Optional[str] = None) -> None:
             
             item_data = item_response.json()
             item_name = item_data.get("name", "Unknown")
-            item_price = item_data.get("price", 0)
+            item_price_ore = item_data.get("price", 0)
+            item_price_sek = item_price_ore / 100
             
             # Process the payment
             payment_response = await client.post(
@@ -224,15 +227,16 @@ async def buy(ctx: commands.Context, item_id: Optional[str] = None) -> None:
             
             if payment_response.status_code == 200:
                 payment_data = payment_response.json()
-                new_balance = payment_data.get("new_balance", "N/A")
+                new_balance_ore = payment_data.get("new_balance", 0)
+                new_balance_sek = new_balance_ore / 100
                 await ctx.send(
                     f"✅ **Purchase Successful!**\n"
                     f"🛒 Item: **{item_name}**\n"
-                    f"💵 Price: {item_price} credits\n"
-                    f"💰 New Balance: {new_balance} credits"
+                    f"💵 Price: {item_price_sek:.2f} SEK\n"
+                    f"💰 New Balance: {new_balance_sek:.2f} SEK"
                 )
             elif payment_response.status_code == 402:
-                await ctx.send(f"❌ Insufficient funds to purchase **{item_name}** ({item_price} credits).")
+                await ctx.send(f"❌ Insufficient funds to purchase **{item_name}** ({item_price_sek:.2f} SEK).")
             elif payment_response.status_code == 403:
                 await ctx.send("❌ Your account is not active. Please contact an administrator.")
             elif payment_response.status_code == 404:
