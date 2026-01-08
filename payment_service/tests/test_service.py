@@ -364,3 +364,89 @@ class TestDebitPayment:
             assert r.status_code == 200
 
         assert "Supabase connection failed" in caplog.text or "✗ Supabase connection failed" in caplog.text
+
+
+class TestTransactionHistory:
+
+    def test_get_transaction_history_db_error(self):
+        # APIError during query should return 500
+        app.dependency_overrides[require_auth] = lambda: {
+            "preferred_username": "admin",
+            "realm_access": {"roles": ["bb_admin"]},
+        }
+
+        class BadQuery:
+            def select(self, *a, **k):
+                return self
+
+            def execute(self):
+                raise APIError({"message": "DB down"})
+
+        class BadSupabase:
+            def table(self, name):
+                return BadQuery()
+
+        app.dependency_overrides[get_supabase] = lambda: BadSupabase()
+
+        client = TestClient(app)
+        resp = client.get("/transactions/history")
+        assert resp.status_code == 500
+        assert "Database error" in resp.json()["detail"]
+
+        app.dependency_overrides.clear()
+
+    def test_get_transaction_history_unexpected_error(self):
+        # unexpected exception should return 500
+        app.dependency_overrides[require_auth] = lambda: {
+            "preferred_username": "admin",
+            "realm_access": {"roles": ["bb_admin"]},
+        }
+
+        class CrashQuery:
+            def select(self, *a, **k):
+                return self
+
+            def execute(self):
+                raise RuntimeError("boom")
+
+        class CrashSupabase:
+            def table(self, name):
+                return CrashQuery()
+
+        app.dependency_overrides[get_supabase] = lambda: CrashSupabase()
+
+        client = TestClient(app)
+        resp = client.get("/transactions/history")
+        assert resp.status_code == 500
+
+        app.dependency_overrides.clear()
+
+
+    def test_get_transaction_by_id_unexpected_error(self):
+        tx_id = "660f9500-f30c-52e5-b827-557766551111"
+        app.dependency_overrides[require_auth] = lambda: {
+            "preferred_username": "12345",
+            "realm_access": {"roles": []},
+        }
+
+        class CrashQuery:
+            def select(self, *a, **k):
+                return self
+
+            def eq(self, *a, **k):
+                return self
+
+            def execute(self):
+                raise RuntimeError("boom")
+
+        class CrashSupabase:
+            def table(self, name):
+                return CrashQuery()
+
+        app.dependency_overrides[get_supabase] = lambda: CrashSupabase()
+
+        client = TestClient(app)
+        resp = client.get(f"/transactions/history/{tx_id}")
+        assert resp.status_code == 500
+
+        app.dependency_overrides.clear()
