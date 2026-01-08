@@ -36,11 +36,11 @@ spec:
             value: '{{ .Values.itemService.keycloakUrl | default "http://keycloak:8080" }}'
           - name: KEYCLOAK_REALM
             value: '{{ .Values.itemService.keycloakRealm | default "BB" }}'
-          - name: KEYCLOAK_ADMIN_item
+          - name: KEYCLOAK_ADMIN_USER
             valueFrom:
               secretKeyRef:
                 name: keycloak-secret
-                key: KEYCLOAK_ADMIN_item
+                key: KEYCLOAK_ADMIN_USER
           - name: KEYCLOAK_ADMIN_PASS
             valueFrom:
               secretKeyRef:
