@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Transaction Details - Barcode Buddy{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+    <h1 style="margin-bottom: 2rem;">Transaction Details</h1>
+    
+    {% if transaction %}
+    <div class="card">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+            <div>
+                <h3 style="margin-bottom: 1rem;">Transaction Information</h3>
+                <div style="margin-bottom: 1rem;">
+                    <label style="color: var(--text-muted); font-size: 0.9rem;">Transaction ID</label>
+                    <div style="font-family: 'Space Mono', monospace; font-size: 0.9rem;">
+                        {{ transaction.id }}
+                    </div>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="color: var(--text-muted); font-size: 0.9rem;">Date & Time</label>
+                    <div style="font-weight: 500;">{{ transaction.created_at }}</div>
+                </div>
+            </div>
+            
+            <div>
+                <h3 style="margin-bottom: 1rem;">Related Entities</h3>
+                <div style="margin-bottom: 1rem;">
+                    <label style="color: var(--text-muted); font-size: 0.9rem;">User ID</label>
+                    <div>
+                        <a href="{{ url_for('users_view', user_id=transaction.user) }}" style="color: var(--accent);">
+                            {{ transaction.user }}
+                        </a>
+                    </div>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="color: var(--text-muted); font-size: 0.9rem;">Item ID</label>
+                    <div style="font-family: 'Space Mono', monospace; font-size: 0.9rem;">
+                        {{ transaction.item }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div style="margin-top: 2rem; text-align: center;">
+        <a href="{{ url_for('transactions_list') }}" class="btn btn-outline">← Back to Transactions</a>
+    </div>
+    {% else %}
+    <div class="card">
+        <p style="text-align: center; color: var(--text-muted); padding: 2rem;">
+            Transaction not found or access denied.
+        </p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

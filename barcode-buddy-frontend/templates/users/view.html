@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}User Details - Barcode Buddy{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+    <h1 style="margin-bottom: 2rem;">User Details</h1>
+    
+    {% if user %}
+    <div class="card">
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem;">
+            <div>
+                <h3 style="margin-bottom: 1rem;">Basic Information</h3>
+                <div style="margin-bottom: 1rem;">
+                    <label style="color: var(--text-muted); font-size: 0.9rem;">User ID</label>
+                    <div style="font-weight: 500;">{{ user.card_id }}</div>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="color: var(--text-muted); font-size: 0.9rem;">Name</label>
+                    <div style="font-weight: 500;">{{ user.name }}</div>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="color: var(--text-muted); font-size: 0.9rem;">Status</label>
+                    <div>
+                        {% if user.active %}
+                            <span class="badge badge-success">Active</span>
+                        {% else %}
+                            <span class="badge badge-danger">Inactive</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <h3 style="margin-bottom: 1rem;">Balance</h3>
+                <div style="font-size: 2rem; font-weight: 700; color: var(--accent); margin-bottom: 1rem;">
+                    {{ (user.balance / 100)|round(2) }} kr
+                </div>
+                
+                <form method="POST" action="{{ url_for('users_add_balance', user_id=user.card_id) }}" style="margin-top: 1.5rem;">
+                    <div class="form-group">
+                        <label class="form-label" for="amount">Add Balance (in öre)</label>
+                        <input type="number" id="amount" name="amount" class="form-control" min="0" step="1" required>
+                        <small style="color: var(--text-muted); display: block; margin-top: 0.25rem;">
+                            Example: 10000 = 100.00 kr
+                        </small>
+                    </div>
+                    <button type="submit" class="btn btn-secondary" style="width: 100%;">Add Balance</button>
+                </form>
+            </div>
+        </div>
+        
+        {% if session.is_admin %}
+        <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--border);">
+            <h3 style="margin-bottom: 1rem;">Admin Actions</h3>
+            <form method="POST" action="{{ url_for('users_set_status', user_id=user.card_id) }}" style="display: inline;">
+                <input type="hidden" name="active" value="{% if user.active %}false{% else %}true{% endif %}">
+                <button type="submit" class="btn btn-outline">
+                    {% if user.active %}Deactivate User{% else %}Activate User{% endif %}
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div style="margin-top: 2rem; text-align: center;">
+        <a href="{{ url_for('transactions_list') }}?user_id={{ user.card_id }}" class="btn btn-primary">
+            View Transaction History
+        </a>
+    </div>
+    {% else %}
+    <div class="card">
+        <p style="text-align: center; color: var(--text-muted); padding: 2rem;">
+            User not found or access denied.
+        </p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

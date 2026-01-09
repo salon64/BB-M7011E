@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: barcode-buddy-frontend
+  labels:
+    app: barcode-buddy-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: barcode-buddy-frontend
+  template:
+    metadata:
+      labels:
+        app: barcode-buddy-frontend
+    spec:
+      containers:
+      - name: frontend
+        image: your-registry/barcode-buddy-frontend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5000
+          name: http
+        env:
+        - name: FLASK_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: frontend-secrets
+              key: flask-secret-key
+        - name: DEBUG
+          value: "false"
+        - name: ITEMS_SERVICE_URL
+          value: "http://items-service:8001"
+        - name: USERS_SERVICE_URL
+          value: "http://users-service:8002"
+        - name: TRANSACTIONS_SERVICE_URL
+          value: "http://transactions-service:8003"
+        - name: KC_URL
+          value: "https://keycloak.ronstad.se"
+        - name: KC_REALM
+          value: "BB"
+        - name: KC_CLIENT_ID
+          value: "public-user"
+        - name: INSECURE
+          value: "false"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: barcode-buddy-frontend
+  labels:
+    app: barcode-buddy-frontend
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 5000
+    protocol: TCP
+    name: http
+  selector:
+    app: barcode-buddy-frontend

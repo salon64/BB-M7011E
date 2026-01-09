@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Barcode Buddy{% endblock %}
+
+{% block content %}
+<div class="card-header" style="margin-bottom: 2rem;">
+    <h1>Dashboard</h1>
+    <p style="color: var(--text-muted); font-weight: 400; margin-top: 0.5rem;">
+        Welcome back, {{ session.username }}! 
+        {% if session.is_admin %}
+            <span class="badge badge-success">Admin</span>
+        {% endif %}
+    </p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+    <a href="{{ url_for('items_list') }}" style="text-decoration: none; color: inherit;">
+        <div class="card" style="cursor: pointer; transition: transform 0.2s;">
+            <h3 style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                📦 Items
+            </h3>
+            <p style="color: var(--text-muted);">Browse and manage inventory items</p>
+            {% if session.is_admin %}
+                <div style="margin-top: 1rem;">
+                    <span class="btn btn-sm btn-outline">Manage Items →</span>
+                </div>
+            {% endif %}
+        </div>
+    </a>
+    
+    <a href="{{ url_for('transactions_list') }}" style="text-decoration: none; color: inherit;">
+        <div class="card" style="cursor: pointer; transition: transform 0.2s;">
+            <h3 style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                💳 Transactions
+            </h3>
+            <p style="color: var(--text-muted);">View purchase history</p>
+            <div style="margin-top: 1rem;">
+                <span class="btn btn-sm btn-outline">View History →</span>
+            </div>
+        </div>
+    </a>
+    
+    <a href="{{ url_for('payments_debit') }}" style="text-decoration: none; color: inherit;">
+        <div class="card" style="cursor: pointer; transition: transform 0.2s;">
+            <h3 style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                💰 Make Payment
+            </h3>
+            <p style="color: var(--text-muted);">Process a new purchase</p>
+            <div style="margin-top: 1rem;">
+                <span class="btn btn-sm btn-primary">New Payment →</span>
+            </div>
+        </div>
+    </a>
+    
+    {% if session.is_admin %}
+    <a href="{{ url_for('users_list') }}" style="text-decoration: none; color: inherit;">
+        <div class="card" style="cursor: pointer; transition: transform 0.2s;">
+            <h3 style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                👥 Users
+            </h3>
+            <p style="color: var(--text-muted);">Manage user accounts</p>
+            <div style="margin-top: 1rem;">
+                <span class="btn btn-sm btn-outline">Manage Users →</span>
+            </div>
+        </div>
+    </a>
+    {% endif %}
+</div>
+
+<div class="card" style="margin-top: 3rem;">
+    <h3 style="margin-bottom: 1rem;">Quick Actions</h3>
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+        {% if session.is_admin %}
+            <a href="{{ url_for('items_create') }}" class="btn btn-secondary">+ Create Item</a>
+        {% endif %}
+        <a href="{{ url_for('payments_debit') }}" class="btn btn-primary">Make Payment</a>
+        <a href="{{ url_for('transactions_list') }}" class="btn btn-outline">View Transactions</a>
+    </div>
+</div>
+{% endblock %}

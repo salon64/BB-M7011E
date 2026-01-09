@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Users - Barcode Buddy{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h1>Users</h1>
+    <a href="{{ url_for('users_create') }}" class="btn btn-primary">+ Create User</a>
+</div>
+
+<div class="card">
+    <p style="color: var(--text-muted); text-align: center; padding: 2rem;">
+        User listing functionality requires a list endpoint in your user service.
+        <br>
+        For now, you can search for users by ID or create new users.
+    </p>
+    
+    <div style="margin-top: 2rem; text-align: center;">
+        <h3 style="margin-bottom: 1rem;">Search User by ID</h3>
+        <form method="GET" action="" style="max-width: 400px; margin: 0 auto; display: flex; gap: 0.5rem;">
+            <input type="number" name="user_id" class="form-control" placeholder="Enter User ID" required>
+            <button type="submit" class="btn btn-primary" onclick="window.location.href='/users/' + document.querySelector('input[name=user_id]').value; return false;">
+                Search
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

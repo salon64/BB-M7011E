@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Barcode Buddy{% endblock %}
+
+{% block content %}
+<div style="text-align: center; padding: 4rem 0;">
+    <h1 style="font-size: 3.5rem; font-weight: 700; margin-bottom: 1rem; background: linear-gradient(135deg, #06b6d4, #2563eb); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+        Barcode Buddy
+    </h1>
+    <p style="font-size: 1.25rem; color: var(--text-muted); margin-bottom: 3rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+        Modern inventory and transaction management system with seamless barcode integration
+    </p>
+    
+    {% if not session.access_token %}
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <a href="{{ url_for('login') }}" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.1rem;">
+                Get Started →
+            </a>
+            <a href="{{ url_for('users_create') }}" class="btn btn-outline" style="padding: 1rem 2rem; font-size: 1.1rem;">
+                Create Account
+            </a>
+        </div>
+    {% else %}
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.1rem;">
+            Go to Dashboard →
+        </a>
+    {% endif %}
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; margin-top: 4rem;">
+    <div class="card" style="text-align: center;">
+        <div style="font-size: 2.5rem; margin-bottom: 1rem;">📦</div>
+        <h3 style="margin-bottom: 0.5rem;">Item Management</h3>
+        <p style="color: var(--text-muted);">Create, edit, and manage inventory items with barcode support</p>
+    </div>
+    
+    <div class="card" style="text-align: center;">
+        <div style="font-size: 2.5rem; margin-bottom: 1rem;">👥</div>
+        <h3 style="margin-bottom: 0.5rem;">User Accounts</h3>
+        <p style="color: var(--text-muted);">Manage user accounts, balances, and access permissions</p>
+    </div>
+    
+    <div class="card" style="text-align: center;">
+        <div style="font-size: 2.5rem; margin-bottom: 1rem;">💳</div>
+        <h3 style="margin-bottom: 0.5rem;">Transactions</h3>
+        <p style="color: var(--text-muted);">Track all purchases and payment history in real-time</p>
+    </div>
+</div>
+{% endblock %}

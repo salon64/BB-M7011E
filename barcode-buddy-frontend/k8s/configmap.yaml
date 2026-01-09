@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-config
+data:
+  ITEMS_SERVICE_URL: "http://items-service:8001"
+  USERS_SERVICE_URL: "http://users-service:8002"
+  TRANSACTIONS_SERVICE_URL: "http://transactions-service:8003"
+  KC_URL: "https://keycloak.ronstad.se"
+  KC_REALM: "BB"
+  KC_CLIENT_ID: "public-user"
+  DEBUG: "false"
+  INSECURE: "false"
