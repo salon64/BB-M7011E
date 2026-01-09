@@ -3,7 +3,9 @@ kind: Deployment
 metadata:
   name: {{ .Values.app.name }}
 spec:
+  {{- if not .Values.app.autoscaling.enabled }}
   replicas: {{ .Values.app.replicas }}
+  {{- end }}
   selector:
     matchLabels:
       app: {{ .Values.app.name }}
