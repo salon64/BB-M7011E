@@ -1,6 +1,8 @@
 import os
 import requests
 from locust import HttpUser, task, between, events
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ======================
 # CONFIG
@@ -65,15 +67,23 @@ class PaymentServiceUser(HttpUser):
 
     @task(5)
     def health(self):
-        self.client.get("/health")
+        self.client.get("/health", verify=False)
 
     @task(5)
     def jwt_info(self):
-        self.client.get("/auth/jwt", headers=self.headers)
+        self.client.get("/auth/jwt", headers=self.headers, verify=False)
+
+    @task(10)
+    def list_items(self):
+        self.client.post("/items/list", headers=self.headers, json={"active_only": True}, verify=False)
+
+    @task(8)
+    def fetch_item(self):
+        self.client.post("/items/fetch_info", headers=self.headers, json={"item_id": 1}, verify=False)
 
     @task(6)
     def transactions(self):
-        self.client.get("/transactions/history", headers=self.headers)
+        self.client.get("/transactions/history", headers=self.headers, verify=False)
 
     @task(3)
     def debit(self):
@@ -175,6 +185,7 @@ class AdminItemServiceUser(HttpUser):
                 "price": 10,
                 "barcode_id": "STRESS123",
             },
+            verify=False
         )
 
     @task(4)
@@ -183,6 +194,7 @@ class AdminItemServiceUser(HttpUser):
             "/items/update",
             headers=self.headers,
             json={"item_id": 1, "price": 11},
+            verify=False
         )
 
     @task(2)
@@ -191,4 +203,5 @@ class AdminItemServiceUser(HttpUser):
             "/items/set_status",
             headers=self.headers,
             json={"item_id": 1, "active": True},
+            verify=False
         )
