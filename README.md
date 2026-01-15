@@ -1,4 +1,48 @@
 # BB-M7011E
+ 
+**Development Team**: [Malcolm Ovin, Olle Ronstad, Justin Gavrell]  
+
+---
+
+## Core Features
+
+1. **[Stock products]**: [An xp-el admin user can restock products]
+2. **[Buy product(s)]**: [A user can buy products from the online store]
+3. **[Transaction history]**: [The application keeps a detailed transaction history allowing for data processing]
+4. **[card reader]**: [A card reader allowing for physical auth] ( Developmnet in backlog)
+
+## 4. Technology Stack
+
+**Frontend**: [HTML]
+**Backend**: [Python with FastAPI]
+**Caching**: [Redis]
+**Database**: [Supabase] 
+
+## 5. System Architecture
+
+**Architecture Overview**:
+
+```mermaid
+graph TD
+    Z[CDN] --> A[HTML]
+    A -->|API Calls| B[Backend FastAPI]
+    B --> C[Products service]
+    B --> H[Payments service]
+    C --> I[(Supabase Database)]
+    H --> I
+    B --> E[(Redis Idempotency Store)]
+    B --> D[Authentication Service]
+    D --> F[Card Reader Integration]
+    D --> G[(Redis Cache)]
+    G --> J[(XP-EL)]
+
+```
+<!-- ```
+[Simple diagram showing main components]
+Frontend <-> API <-> Services <-> Database
+                 <-> Auth Service
+                 <-> [Other Services]
+``` -->
 
 # Guide — Deploying Bättre Bösch
 
