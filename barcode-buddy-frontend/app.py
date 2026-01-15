@@ -5,6 +5,7 @@ Main application file with routes and API integration
 
 import os
 import requests
+import jwt
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from functools import wraps
 from datetime import datetime
@@ -18,9 +19,9 @@ app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'dev-secret-key-change-in-production')
 
 # Configuration
-ITEMS_SERVICE_URL = os.getenv('ITEMS_SERVICE_URL', 'http://localhost:8001')
-USERS_SERVICE_URL = os.getenv('USERS_SERVICE_URL', 'http://localhost:8002')
-TRANSACTIONS_SERVICE_URL = os.getenv('TRANSACTIONS_SERVICE_URL', 'http://localhost:8003')
+ITEMS_SERVICE_URL = os.getenv('ITEMS_SERVICE_URL', 'https://item-service-dev.ronstad.se')
+USERS_SERVICE_URL = os.getenv('USERS_SERVICE_URL', 'https://user-service-dev.ronstad.se')
+TRANSACTIONS_SERVICE_URL = os.getenv('TRANSACTIONS_SERVICE_URL', 'https://payment-service-dev.ronstad.se')
 KC_URL = os.getenv('KC_URL', 'https://keycloak.ronstad.se')
 KC_REALM = os.getenv('KC_REALM', 'BB')
 KC_CLIENT_ID = os.getenv('KC_CLIENT_ID', 'public-user')
@@ -99,12 +100,14 @@ def login():
                 session['refresh_token'] = token_data.get('refresh_token')
                 session['username'] = username
                 
-                # Get JWT info to check admin status
-                jwt_response = make_request('GET', f"{USERS_SERVICE_URL}/auth/jwt")
-                if jwt_response and jwt_response.status_code == 200:
-                    jwt_info = jwt_response.json()
+                # Decode JWT locally to check admin status
+                try:
+                    jwt_info = jwt.decode(token_data.get('access_token'), options={"verify_signature": False})
                     session['is_admin'] = 'bb_admin' in jwt_info.get('realm_access', {}).get('roles', [])
                     session['user_id'] = jwt_info.get('sub')
+                except Exception as e:
+                    logger.error(f"Failed to decode JWT: {e}")
+                    session['is_admin'] = False
                 
                 flash(f'Welcome back, {username}!', 'success')
                 return redirect(url_for('dashboard'))

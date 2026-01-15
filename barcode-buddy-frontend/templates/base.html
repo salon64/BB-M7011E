@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Barcode Buddy{% endblock %}</title>
+    <title>{% block title %}Bättre Bosch{% endblock %}</title>
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Work+Sans:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -329,7 +329,7 @@
 <body>
     <nav class="navbar">
         <div class="nav-container">
-            <a href="{{ url_for('index') }}" class="nav-brand">BARCODE_BUDDY</a>
+            <a href="{{ url_for('index') }}" class="nav-brand">BÄTTRE_BOSCH</a>
             <ul class="nav-links">
                 {% if session.access_token %}
                     <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
@@ -364,7 +364,7 @@
     </div>
 
     <div class="footer">
-        <p>&copy; 2026 Barcode Buddy System | Built with Flask</p>
+        <p>&copy; 2026 Bättre Bosch System | Built with Flask</p>
     </div>
 
     {% block extra_js %}{% endblock %}

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Login - Barcode Buddy{% endblock %}
+{% block title %}Login - Bättre Bosch{% endblock %}
 
 {% block content %}
 <div style="max-width: 450px; margin: 3rem auto;">
@@ -9,7 +9,7 @@
         
         <form method="POST" action="{{ url_for('login') }}">
             <div class="form-group">
-                <label class="form-label" for="username">Username</label>
+                <label class="form-label" for="username">Card ID</label>
                 <input type="text" id="username" name="username" class="form-control" required autofocus>
             </div>
             

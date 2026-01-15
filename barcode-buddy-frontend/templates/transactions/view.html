@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Transaction Details - Barcode Buddy{% endblock %}
+{% block title %}Transaction Details - Bättre Bosch{% endblock %}
 
 {% block content %}
 <div style="max-width: 800px; margin: 0 auto;">
@@ -14,12 +14,12 @@
                 <div style="margin-bottom: 1rem;">
                     <label style="color: var(--text-muted); font-size: 0.9rem;">Transaction ID</label>
                     <div style="font-family: 'Space Mono', monospace; font-size: 0.9rem;">
-                        {{ transaction.id }}
+                        {{ transaction.get('id', 'N/A') }}
                     </div>
                 </div>
                 <div style="margin-bottom: 1rem;">
                     <label style="color: var(--text-muted); font-size: 0.9rem;">Date & Time</label>
-                    <div style="font-weight: 500;">{{ transaction.created_at }}</div>
+                    <div style="font-weight: 500;">{{ transaction.get('created_at', 'N/A') }}</div>
                 </div>
             </div>
             
@@ -28,15 +28,19 @@
                 <div style="margin-bottom: 1rem;">
                     <label style="color: var(--text-muted); font-size: 0.9rem;">User ID</label>
                     <div>
-                        <a href="{{ url_for('users_view', user_id=transaction.user) }}" style="color: var(--accent);">
-                            {{ transaction.user }}
-                        </a>
+                        {% if transaction.get('user') %}
+                            <a href="{{ url_for('users_view', user_id=transaction.get('user')) }}" style="color: var(--accent);">
+                                {{ transaction.get('user') }}
+                            </a>
+                        {% else %}
+                            <span style="color: var(--text-muted);">N/A</span>
+                        {% endif %}
                     </div>
                 </div>
                 <div style="margin-bottom: 1rem;">
                     <label style="color: var(--text-muted); font-size: 0.9rem;">Item ID</label>
                     <div style="font-family: 'Space Mono', monospace; font-size: 0.9rem;">
-                        {{ transaction.item }}
+                        {{ transaction.get('item', 'N/A') }}
                     </div>
                 </div>
             </div>
