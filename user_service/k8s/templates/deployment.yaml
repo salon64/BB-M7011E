@@ -3,7 +3,9 @@ kind: Deployment
 metadata:
   name: {{ .Values.userService.name }}
 spec:
+  {{- if not .Values.userService.autoscaling.enabled }}
   replicas: {{ .Values.userService.replicas }}
+  {{- end }}
   selector:
     matchLabels:
       app: {{ .Values.userService.name }}
@@ -26,7 +28,10 @@ spec:
             cpu: {{ .Values.userService.resources.limits.cpu | default "10m" }}
         env:
           - name: SUPABASE_URL
-            value: "http://supabase:8000"
+            valueFrom:
+              secretKeyRef:
+                name: supabase-secret
+                key: SUPABASE_URL
           - name: SUPABASE_KEY
             valueFrom:
               secretKeyRef:

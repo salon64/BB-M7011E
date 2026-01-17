@@ -36,7 +36,10 @@ spec:
             - name: KEYCLOAK_REALM
               value: "{{ .Values.keycloak.realm }}"
             - name: SUPABASE_URL
-              value: "{{ .Values.supabase.url }}"
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-secret
+                  key: SUPABASE_URL
             - name: SUPABASE_KEY
               valueFrom:
                 secretKeyRef:
