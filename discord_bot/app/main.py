@@ -6,9 +6,11 @@ import logging
 import discord
 import httpx
 import jwt
+import signal
+import asyncio
 from datetime import datetime
 from urllib.parse import urlencode
-from auth import get_user_card_id, get_discord_jwt, UserNotLinkedError
+from app.auth import get_user_card_id, get_discord_jwt, UserNotLinkedError
 from discord.ext import commands
 from dotenv import load_dotenv
 from typing import Optional
@@ -542,7 +544,20 @@ def main() -> None:
         return
 
     logger.info("Starting Discord bot...")
-    bot.run(DISCORD_TOKEN)
+    
+    # Set up signal handlers for graceful shutdown
+    def signal_handler(signum, frame):
+        logger.info(f"Received signal {signum}, initiating graceful shutdown...")
+        asyncio.create_task(bot.close())
+    
+    # Register signal handlers for SIGTERM (Kubernetes termination) and SIGINT (Ctrl+C)
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+    
+    try:
+        bot.run(DISCORD_TOKEN)
+    except KeyboardInterrupt:
+        logger.info("Bot interrupted, shutting down...")
 
 
 if __name__ == "__main__":

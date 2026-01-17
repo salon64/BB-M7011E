@@ -6,8 +6,9 @@ WORKDIR /app
 COPY common/ ./common/
 RUN pip install --no-cache-dir ./common
 
+
 # Install dependencies
-COPY discord_bot/app/requirements.txt .
+COPY discord_bot/app/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application
@@ -18,4 +19,4 @@ RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
 # Run application
-CMD ["python", "app/main.py"]
+CMD ["python", "-m", "app.main"]
