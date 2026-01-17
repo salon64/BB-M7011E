@@ -1,7 +1,7 @@
 # Frontend Service Configuration
 
 frontend:
-  name: barcode-buddy-frontend
+  name: frontend
   replicas: 1
   image: olleronstad/bb_frontend
   tag: latest

@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: barcode-buddy-frontend
+  name: {{ .Values.frontend.name }}
   labels:
-    app: barcode-buddy-frontend
+    app: {{ .Values.frontend.name }}
 spec:
-  replicas: 2
+  replicas: {{ .Values.frontend.replicas }}
   selector:
     matchLabels:
-      app: barcode-buddy-frontend
+      app: {{ .Values.frontend.name }}
   template:
     metadata:
       labels:
-        app: barcode-buddy-frontend
+        app: {{ .Values.frontend.name }}
     spec:
       containers:
       - name: frontend
-        image: your-registry/barcode-buddy-frontend:latest
+        image: {{ .Values.frontend.image }}:{{ .Values.frontend.tag }}
         imagePullPolicy: Always
         ports:
         - containerPort: 5000
