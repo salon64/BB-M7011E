@@ -20,9 +20,8 @@ async def test_on_ready_sets_presence_and_supabase(monkeypatch):
             self.change_presence = AsyncMock()
 
     fake_bot = FakeBot()
-    # monkeypatch the global bot and get_supabase_client
+    # monkeypatch the global bot
     monkeypatch.setattr(bot_main, "bot", fake_bot)
-    monkeypatch.setattr(bot_main, "get_supabase_client", lambda: object())
 
     await bot_main.on_ready()
 
