@@ -201,9 +201,13 @@ async def debit_payment(
         user_data.get("preferred_username"),
     )
 
-    if request.user_id != int(
-        user_data.get("preferred_username", -1)
-    ) and "bb_admin" not in user_data.get("realm_access", {}).get("roles", []):
+    # Try to get numeric user ID from preferred_username
+    try:
+        current_user_id = int(user_data.get("preferred_username", -1))
+    except (ValueError, TypeError):
+        current_user_id = -1
+
+    if request.user_id != current_user_id and "bb_admin" not in user_data.get("realm_access", {}).get("roles", []):
         logger.warning(
             "Unauthorized debit attempt | target_user=%s caller=%s roles=%s",
             request.user_id,
