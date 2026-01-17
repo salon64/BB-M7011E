@@ -1,53 +1,92 @@
 # Quick Start Guide - Barcode Buddy Frontend
 
-This guide will get you up and running in 5 minutes.
+## Deployment via Kubernetes (Required)
 
-## Option 1: Local Development (Fastest)
+This frontend is designed to be deployed exclusively through Kubernetes.
 
-### Step 1: Install Dependencies
+### Prerequisites
+
+- Kubernetes cluster running
+- kubectl configured and connected to your cluster
+- All backend services deployed (user-service, item-service, payment-service)
+- Keycloak instance running
+- ArgoCD (optional, for GitOps deployments)
+
+### Option 1: Deploy with Helm
 
 ```bash
-# Install Python dependencies
-pip install -r requirements.txt
+# From the project root
+helm install frontend ./frontend/k8s \
+  --namespace default \
+  --values frontend/k8s/values.yaml
 ```
 
-### Step 2: Configure Environment
+### Option 2: Deploy with kubectl
 
 ```bash
-# Copy environment template
+# Apply all Kubernetes manifests
+kubectl apply -f frontend/k8s/
+
+# Verify deployment
+kubectl get pods -l app=frontend
+kubectl get svc barcode-buddy-frontend
+kubectl get ingress barcode-buddy-frontend
+```
+
+### Option 3: Deploy with ArgoCD (Recommended)
+
+The project includes ArgoCD configuration for GitOps-based deployment. Commit your changes and ArgoCD will automatically sync.
+
+```bash
+# Check ArgoCD status
+argocd app get barcode-buddy-frontend
+```
+
+## Verify Deployment
+
+```bash
+# Check pod status
+kubectl get pods -l app=frontend
+
+# Check logs
+kubectl logs -l app=frontend -f
+
+# Test health endpoint
+kubectl port-forward svc/barcode-buddy-frontend 5000:80
+curl http://localhost:5000/health
+```
+
+## Configuration
+
+Update `frontend/k8s/values.yaml` with your configuration:
+
+```yaml
+frontend:
+  domain: www.ronstad.se
+  image: olleronstad/bb_frontend
+  tag: latest
+
+ingress:
+  enabled: true
+  certIssuer: "letsencrypt-prod"
+```
+
+## Local Development
+
+For development purposes only, you can run locally:
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure environment
 cp .env.example .env
 
-# Edit with your configuration
-# At minimum, change:
-# - FLASK_SECRET_KEY (generate with: python -c "import secrets; print(secrets.token_hex(32))")
-# - Service URLs if different from defaults
-```
-
-### Step 3: Run
-
-```bash
+# Run development server
 python app.py
 ```
 
-Visit `http://localhost:5000` 🎉
-
-## Option 2: Docker (Recommended for Production)
-
-### Step 1: Build Image
-
-```bash
-docker build -t barcode-buddy-frontend:latest .
-```
-
-### Step 2: Run Container
-
-```bash
-docker run -d \
-  --name bb-frontend \
-  -p 5000:5000 \
-  -e FLASK_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')" \
-  -e ITEMS_SERVICE_URL="http://items-service:8001" \
-  -e USERS_SERVICE_URL="http://users-service:8002" \
+**Note**: Local development is for testing only. All production deployments must use Kubernetes.
   -e TRANSACTIONS_SERVICE_URL="http://transactions-service:8003" \
   barcode-buddy-frontend:latest
 ```

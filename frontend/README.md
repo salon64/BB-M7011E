@@ -2,6 +2,8 @@
 
 A modern, responsive web frontend for the Barcode Buddy microservice system built with Flask. This application provides a complete user interface for managing items, users, transactions, and payments.
 
+**Deployment**: Kubernetes only (see `k8s/` directory)
+
 ## Features
 
 - 🔐 **Authentication** - Keycloak integration with JWT tokens
@@ -10,7 +12,7 @@ A modern, responsive web frontend for the Barcode Buddy microservice system buil
 - 💳 **Transactions** - Complete transaction history and payment processing
 - 🎨 **Modern UI** - Clean, dark-themed interface with responsive design
 - 🔒 **Role-Based Access** - Admin and user roles with different permissions
-- 🚀 **Production Ready** - Containerized with Docker and Kubernetes support
+- 🚀 **Production Ready** - Containerized and deployed via Kubernetes
 
 ## Tech Stack
 
@@ -18,13 +20,14 @@ A modern, responsive web frontend for the Barcode Buddy microservice system buil
 - **Frontend**: HTML5, CSS3 (no JavaScript framework)
 - **Authentication**: Keycloak (OAuth2/OIDC)
 - **Container**: Docker
-- **Orchestration**: Kubernetes
+- **Orchestration**: Kubernetes (required)
 - **WSGI Server**: Gunicorn
+- **Ingress**: Traefik with cert-manager
 
 ## Project Structure
 
 ```
-barcode-buddy-frontend/
+frontend/
 ├── app.py                      # Main Flask application
 ├── requirements.txt            # Python dependencies
 ├── Dockerfile                  # Docker container configuration
@@ -50,38 +53,47 @@ barcode-buddy-frontend/
 │   │   └── view.html
 │   └── payments/             # Payment templates
 │       └── debit.html
-└── k8s/                      # Kubernetes manifests
+└── k8s/                      # Kubernetes deployment (required)
     ├── deployment.yaml       # Deployment and Service
     ├── secrets.yaml          # Secrets (template)
     ├── configmap.yaml        # Configuration
-    └── ingress.yaml          # Ingress configuration
-
+    ├── ingress.yaml          # Ingress configuration (Traefik)
+    ├── values.yaml           # Helm values
+    └── Chart.yaml            # Helm chart metadata
 ```
 
 ## Prerequisites
 
-- Python 3.11 or higher
-- Docker (for containerization)
-- Kubernetes cluster (for deployment)
-- Access to your microservices:
-  - Items Service
-  - Users Service
-  - Transactions Service
-- Keycloak instance
+- Kubernetes cluster (v1.24+)
+- kubectl configured and connected to your cluster
+- Docker (for building images)
+- All backend services deployed:
+  - User Service
+  - Item Service  
+  - Payment Service
+- Keycloak instance running
+- Traefik Ingress Controller
+- cert-manager for TLS certificates
 
-## Local Development Setup
+## Deployment
 
-### 1. Clone and Setup
+### Quick Start
 
-```bash
-# Create project directory (if needed)
-mkdir barcode-buddy-frontend
-cd barcode-buddy-frontend
+See [QUICKSTART.md](./QUICKSTART.md) for Kubernetes deployment options:
 
-# Copy all files from this package
-```
+1. **Helm**: `helm install frontend ./k8s --values k8s/values.yaml`
+2. **kubectl**: `kubectl apply -f k8s/`
+3. **ArgoCD**: Automatic GitOps-based deployment
 
-### 2. Create Virtual Environment
+### Full Documentation
+
+See [DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md) for complete pre-deployment checklist.
+
+## Local Development Setup (Development Only)
+
+For development and testing only - production deployments must use Kubernetes.
+
+### 1. Setup Virtual Environment
 
 ```bash
 python -m venv venv
@@ -93,7 +105,7 @@ source venv/bin/activate
 venv\Scripts\activate
 ```
 
-### 3. Install Dependencies
+### 2. Install Dependencies
 
 ```bash
 pip install -r requirements.txt

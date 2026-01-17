@@ -1,53 +1,63 @@
-# Production Deployment Checklist
+# Kubernetes Deployment Checklist
 
-Use this checklist before deploying to production.
+Use this checklist before deploying to production via Kubernetes.
 
 ## Pre-Deployment
 
 ### Security
 - [ ] Generated strong `FLASK_SECRET_KEY` (32+ characters)
 - [ ] Set `DEBUG=false`
-- [ ] Configured HTTPS/TLS
-- [ ] Updated Kubernetes secrets properly
-- [ ] Reviewed and set proper RBAC
-- [ ] Enabled secrets encryption at rest
+- [ ] Configured HTTPS/TLS with cert-manager
+- [ ] Created Kubernetes secrets properly
+- [ ] Reviewed and set proper RBAC policies
+- [ ] Enabled secrets encryption at rest in etcd
 - [ ] Configured network policies
-- [ ] Set up firewall rules
+- [ ] Set up firewall rules at infrastructure level
 - [ ] Reviewed Keycloak security settings
-- [ ] Enabled audit logging
+- [ ] Enabled audit logging in Kubernetes
+- [ ] Configured PodSecurityPolicy or Pod Security Standards
 
-### Configuration
-- [ ] Updated all service URLs
+### Kubernetes Configuration
+- [ ] Updated all service URLs in values.yaml
 - [ ] Verified Keycloak configuration
 - [ ] Set correct domain name in ingress
-- [ ] Configured resource limits appropriately
-- [ ] Set up proper health check intervals
-- [ ] Configured proper replica count
-- [ ] Set correct timezone if needed
+- [ ] Configured resource requests and limits appropriately
+- [ ] Set up proper health check intervals (livenessProbe, readinessProbe)
+- [ ] Configured correct replica count for HA
+- [ ] Set correct image registry and pull secrets if needed
+- [ ] Verified namespace configuration
+- [ ] Reviewed image pull policy settings
+- [ ] Set up node affinity/pod affinity if needed
 
 ### Infrastructure
-- [ ] Kubernetes cluster is healthy
+- [ ] Kubernetes cluster is healthy and up-to-date
 - [ ] All backend services are deployed and running
-- [ ] Keycloak is accessible
-- [ ] Database is backed up
-- [ ] Monitoring is configured
-- [ ] Logging is configured
-- [ ] DNS records are set
-- [ ] Load balancer is configured
+- [ ] Keycloak is accessible and healthy
+- [ ] Database backups are configured and tested
+- [ ] Monitoring (Prometheus) is configured
+- [ ] Logging (ELK/Loki) is configured
+- [ ] DNS records are set up
+- [ ] Load balancer/Ingress controller is configured (Traefik)
+- [ ] Certificate issuer (cert-manager) is set up
+- [ ] Storage is configured if needed
+- [ ] Network policies are in place
 
 ### Testing
-- [ ] Tested all routes locally
-- [ ] Verified authentication works
+- [ ] Tested all routes locally before K8s deployment
+- [ ] Verified authentication works with Keycloak
 - [ ] Tested admin functions
 - [ ] Tested user functions
-- [ ] Tested payment processing
-- [ ] Load tested application
-- [ ] Tested failover scenarios
-- [ ] Verified health checks work
+- [ ] Tested item management
+- [ ] Tested transaction viewing
+- [ ] Load tested application (at least 50 concurrent users)
+- [ ] Tested pod restart/failover scenarios
+- [ ] Verified health checks work correctly
+- [ ] Tested graceful shutdown
+- [ ] Tested ingress routing and TLS
 
-## Deployment Steps
+## Kubernetes Deployment Steps
 
-### 1. Build and Push Image
+### 1. Build and Push Docker Image
 
 ```bash
 # Build image with version tag
