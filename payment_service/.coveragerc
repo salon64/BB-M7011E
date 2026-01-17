@@ -5,6 +5,8 @@ omit =
     */venv/*
     */__pycache__/*
     */migrations/*
+    test_transactions_history.py
+    */test_transactions_history.py
 
 [report]
 exclude_lines =

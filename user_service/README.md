@@ -1,5 +1,10 @@
 # User Service
 
+[![Coverage](https://codecov.io/gh/salon64/BB-M7011E/branch/main/flag/user_service/graph/badge.svg)](https://codecov.io/gh/salon64/BB-M7011E)
+[![Tests](https://github.com/salon64/BB-M7011E/actions/workflows/ci.yml/badge.svg)](https://github.com/salon64/BB-M7011E/actions)
+[![Python](https://img.shields.io/badge/python-3.11-blue.svg)](https://python.org)
+
+
 ### Key Technologies
 
 - **Framework**: FastAPI
