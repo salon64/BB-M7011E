@@ -9,39 +9,25 @@
     <div class="card">
         <form method="POST" action="{{ url_for('payments_debit') }}">
             <div class="form-group">
-                <label class="form-label" for="user_id">User ID *</label>
-                <input type="number" id="user_id" name="user_id" class="form-control" required>
-                <small style="color: var(--text-muted); display: block; margin-top: 0.25rem;">
-                    The card ID of the user making the purchase
-                </small>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="item_id">Item *</label>
+                <label class="form-label" for="item_id">Select Item *</label>
                 <select id="item_id" name="item_id" class="form-control" required>
-                    <option value="">Select an item...</option>
+                    <option value="">Choose an item...</option>
                     {% for item in items %}
-                        <option value="{{ item.id }}">
+                        <option value="{{ item.id }}" data-price="{{ item.price }}">
                             {{ item.name }} - {{ (item.price / 100)|round(2) }} kr
-                            {% if item.barcode_id %}(Barcode: {{ item.barcode_id }}){% endif %}
                         </option>
                     {% endfor %}
                 </select>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="amount">Amount (in öre) *</label>
-                <input type="number" id="amount" name="amount" class="form-control" required min="1" step="1">
                 <small style="color: var(--text-muted); display: block; margin-top: 0.25rem;">
-                    This will be debited from the user's balance
+                    Select the item to purchase. The price will be debited from your balance.
                 </small>
             </div>
             
             <div style="padding: 1rem; background: rgba(6, 182, 212, 0.1); border-radius: 6px; margin: 1.5rem 0; border-left: 3px solid var(--accent);">
-                <strong style="color: var(--accent);">Note:</strong>
-                <span style="color: var(--text-muted); display: block; margin-top: 0.25rem;">
-                    The amount should match the item price. Make sure the user has sufficient balance.
-                </span>
+                <strong style="color: var(--accent);">Selected Item:</strong>
+                <div id="selected_item_info" style="color: var(--text-muted); display: block; margin-top: 0.5rem;">
+                    None selected
+                </div>
             </div>
             
             <div style="display: flex; gap: 1rem; margin-top: 2rem;">
@@ -54,15 +40,17 @@
 
 {% block extra_js %}
 <script>
-    // Auto-fill amount when item is selected
+    // Display selected item info
     document.getElementById('item_id').addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
+        const infoDiv = document.getElementById('selected_item_info');
+        
         if (selectedOption.value) {
-            const priceMatch = selectedOption.text.match(/(\d+\.?\d*)\s*kr/);
-            if (priceMatch) {
-                const priceInOre = Math.round(parseFloat(priceMatch[1]) * 100);
-                document.getElementById('amount').value = priceInOre;
-            }
+            const price = parseFloat(selectedOption.dataset.price);
+            const priceInKr = (price / 100).toFixed(2);
+            infoDiv.innerHTML = `<strong>${selectedOption.text}</strong>`;
+        } else {
+            infoDiv.innerHTML = 'None selected';
         }
     });
 </script>

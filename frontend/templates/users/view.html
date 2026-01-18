@@ -12,17 +12,13 @@
             <div>
                 <h3 style="margin-bottom: 1rem;">Basic Information</h3>
                 <div style="margin-bottom: 1rem;">
-                    <label style="color: var(--text-muted); font-size: 0.9rem;">User ID</label>
-                    <div style="font-weight: 500;">{{ user.card_id }}</div>
-                </div>
-                <div style="margin-bottom: 1rem;">
                     <label style="color: var(--text-muted); font-size: 0.9rem;">Name</label>
-                    <div style="font-weight: 500;">{{ user.name }}</div>
+                    <div style="font-weight: 500;">{{ user['first_name'] }} {{ user['last_name'] }}</div>
                 </div>
                 <div style="margin-bottom: 1rem;">
                     <label style="color: var(--text-muted); font-size: 0.9rem;">Status</label>
                     <div>
-                        {% if user.active %}
+                        {% if user['active'] %}
                             <span class="badge badge-success">Active</span>
                         {% else %}
                             <span class="badge badge-danger">Inactive</span>
@@ -34,10 +30,10 @@
             <div>
                 <h3 style="margin-bottom: 1rem;">Balance</h3>
                 <div style="font-size: 2rem; font-weight: 700; color: var(--accent); margin-bottom: 1rem;">
-                    {{ (user.balance / 100)|round(2) }} kr
+                    {{ (user['balance'] / 100)|round(2) }} kr
                 </div>
                 
-                <form method="POST" action="{{ url_for('users_add_balance', user_id=user.card_id) }}" style="margin-top: 1.5rem;">
+                <form method="POST" action="{{ url_for('users_add_balance', user_id=user_id) }}" style="margin-top: 1.5rem;">
                     <div class="form-group">
                         <label class="form-label" for="amount">Add Balance (in öre)</label>
                         <input type="number" id="amount" name="amount" class="form-control" min="0" step="1" required>
@@ -53,10 +49,10 @@
         {% if session.is_admin %}
         <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--border);">
             <h3 style="margin-bottom: 1rem;">Admin Actions</h3>
-            <form method="POST" action="{{ url_for('users_set_status', user_id=user.card_id) }}" style="display: inline;">
-                <input type="hidden" name="active" value="{% if user.active %}false{% else %}true{% endif %}">
+            <form method="POST" action="{{ url_for('users_set_status', user_id=user_id) }}" style="display: inline;">
+                <input type="hidden" name="active" value="{% if user['active'] %}false{% else %}true{% endif %}">
                 <button type="submit" class="btn btn-outline">
-                    {% if user.active %}Deactivate User{% else %}Activate User{% endif %}
+                    {% if user['active'] %}Deactivate User{% else %}Activate User{% endif %}
                 </button>
             </form>
         </div>
@@ -64,7 +60,7 @@
     </div>
     
     <div style="margin-top: 2rem; text-align: center;">
-        <a href="{{ url_for('transactions_list') }}?user_id={{ user.card_id }}" class="btn btn-primary">
+        <a href="{{ url_for('transactions_list') }}?user_id={{ user_id }}" class="btn btn-primary">
             View Transaction History
         </a>
     </div>

@@ -100,14 +100,17 @@ def login():
                 session['refresh_token'] = token_data.get('refresh_token')
                 session['username'] = username
                 
-                # Decode JWT locally to check admin status
+                # Decode JWT locally to check admin status and get user info
                 try:
                     jwt_info = jwt.decode(token_data.get('access_token'), options={"verify_signature": False})
                     session['is_admin'] = 'bb_admin' in jwt_info.get('realm_access', {}).get('roles', [])
                     session['user_id'] = jwt_info.get('sub')
+                    # Store preferred_username (card_id) from JWT
+                    session['card_id'] = jwt_info.get('preferred_username')
                 except Exception as e:
                     logger.error(f"Failed to decode JWT: {e}")
                     session['is_admin'] = False
+                    session['card_id'] = username  # Fallback to username
                 
                 flash(f'Welcome back, {username}!', 'success')
                 return redirect(url_for('dashboard'))
@@ -130,14 +133,29 @@ def logout():
 @login_required
 def dashboard():
     """Main dashboard"""
-    return render_template('dashboard.html')
+    # Get user's balance
+    user_balance = None
+    card_id = session.get('card_id')
+    if card_id:
+        try:
+            user_id = int(card_id)
+            response = make_request('POST', f"{USERS_SERVICE_URL}/user/fetch_info", 
+                                  json={'user_id': user_id})
+            if response and response.status_code == 200:
+                user_balance = response.json().get('balance', 0) / 100  # Convert öre to kr
+        except (ValueError, TypeError) as e:
+            logger.error(f"Failed to fetch user balance: {e}")
+    
+    return render_template('dashboard.html', user_balance=user_balance)
 
 # ITEMS ROUTES
 @app.route('/items')
 @login_required
 def items_list():
     """List all items"""
-    response = make_request('POST', f"{ITEMS_SERVICE_URL}/items/list", json={"active_only": True})
+    # Admins can see all items (including inactive), regular users only see active
+    active_only = not session.get('is_admin', False)
+    response = make_request('POST', f"{ITEMS_SERVICE_URL}/items/list", json={"active_only": active_only})
     items = []
     
     if response and response.status_code == 200:
@@ -204,7 +222,7 @@ def items_toggle_status(item_id):
     active = request.form.get('active') == 'true'
     
     response = make_request('POST', f"{ITEMS_SERVICE_URL}/items/set_status", 
-                          json={'item_id': item_id, 'active': active})
+                          json={'item_id': item_id, 'item_status': active})
     
     if response and response.status_code == 200:
         flash('Item status updated!', 'success')
@@ -268,6 +286,67 @@ def users_create():
     
     return render_template('users/create.html')
 
+@app.route('/users/add-funds', methods=['GET', 'POST'])
+@login_required
+def users_add_funds():
+    """Add funds to current user's account"""
+    # Get user_id (card_id) from session
+    user_id = None
+    if 'card_id' in session:
+        try:
+            user_id = int(session['card_id'])
+        except (ValueError, TypeError):
+            pass
+    
+    if not user_id:
+        logger.error(f"Could not extract card_id from session: {session.keys()}")
+        flash('Could not retrieve user information. Please log in again.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    if request.method == 'POST':
+        # Check if receipt image was uploaded
+        if 'receipt' not in request.files or request.files['receipt'].filename == '':
+            flash('Please upload a payment receipt.', 'danger')
+            return redirect(url_for('users_add_funds'))
+        
+        receipt = request.files['receipt']
+        
+        # Validate file is an image
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+        if not ('.' in receipt.filename and receipt.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
+            flash('Please upload a valid image file (PNG, JPG, GIF).', 'danger')
+            return redirect(url_for('users_add_funds'))
+        
+        # Get amount (convert kronor to öre)
+        try:
+            amount = int(request.form.get('amount', 0)) * 100  # Convert kr to öre
+        except (ValueError, TypeError):
+            flash('Please enter a valid amount.', 'danger')
+            return redirect(url_for('users_add_funds'))
+        
+        if amount <= 0:
+            flash('Please enter a positive amount.', 'danger')
+            return redirect(url_for('users_add_funds'))
+        
+        # For now, we'll just process the request directly
+        # In production, you'd store the receipt and create a pending request for admin approval
+        data = {
+            'card_id': user_id,
+            'amount': amount,
+        }
+        
+        response = make_request('POST', f"{USERS_SERVICE_URL}/user/add_balance", json=data)
+        
+        if response and response.status_code == 200:
+            new_balance = response.json().get('new_balance', 0) / 100  # Convert back to kr
+            flash(f'Funds added successfully! Your new balance is {new_balance:.2f} kr.', 'success')
+            return redirect(url_for('dashboard'))
+        else:
+            error_msg = response.json().get('detail', 'Failed to add funds.') if response else 'Failed to add funds.'
+            flash(error_msg, 'danger')
+    
+    return render_template('users/add_funds.html', user_id=user_id)
+
 @app.route('/users/<int:user_id>')
 @login_required
 def users_view(user_id):
@@ -284,7 +363,7 @@ def users_view(user_id):
     if response and response.status_code == 200:
         user = response.json()
     
-    return render_template('users/view.html', user=user)
+    return render_template('users/view.html', user=user, user_id=user_id)
 
 @app.route('/users/<int:user_id>/add-balance', methods=['POST'])
 @login_required
@@ -293,7 +372,7 @@ def users_add_balance(user_id):
     amount = int(request.form.get('amount', 0))
     
     response = make_request('POST', f"{USERS_SERVICE_URL}/user/add_balance", 
-                          json={'user_id': user_id, 'amount': amount})
+                          json={'card_id': user_id, 'amount': amount})
     
     if response and response.status_code == 200:
         flash('Balance added successfully!', 'success')
@@ -309,7 +388,7 @@ def users_set_status(user_id):
     active = request.form.get('active') == 'true'
     
     response = make_request('POST', f"{USERS_SERVICE_URL}/user/set_status", 
-                          json={'user_id': user_id, 'active': active})
+                          json={'user_id_input': str(user_id), 'user_status_input': active})
     
     if response and response.status_code == 200:
         flash('User status updated!', 'success')
@@ -358,10 +437,28 @@ def transactions_view(transaction_id):
 def payments_debit():
     """Make a payment (debit user)"""
     if request.method == 'POST':
+        # Get user_id (card_id) from session
+        user_id = None
+        if 'card_id' in session:
+            try:
+                user_id = int(session['card_id'])
+            except (ValueError, TypeError):
+                pass
+        
+        if not user_id:
+            logger.error(f"Could not extract card_id from session: {session.keys()}")
+            flash('Could not retrieve user information. Please log in again.', 'danger')
+            return redirect(url_for('payments_debit'))
+        
+        # Get item_id from form
+        item_id = request.form.get('item_id')
+        if not item_id:
+            flash('Please select an item.', 'danger')
+            return redirect(url_for('payments_debit'))
+        
         data = {
-            'user_id': int(request.form.get('user_id')),
-            'item_id': request.form.get('item_id'),
-            'amount': int(request.form.get('amount')),
+            'user_id': user_id,
+            'item_id': item_id,
         }
         
         response = make_request('POST', f"{TRANSACTIONS_SERVICE_URL}/payments/debit", 

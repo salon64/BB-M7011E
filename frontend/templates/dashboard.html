@@ -11,6 +11,12 @@
             <span class="badge badge-success">Admin</span>
         {% endif %}
     </p>
+    {% if user_balance is not none %}
+    <div style="margin-top: 1rem; padding: 1rem; background: rgba(16, 185, 129, 0.1); border-radius: 8px; display: inline-block;">
+        <span style="color: var(--text-muted);">Your Balance:</span>
+        <span style="font-size: 1.5rem; font-weight: 600; color: var(--secondary); margin-left: 0.5rem;">{{ "%.2f"|format(user_balance) }} kr</span>
+    </div>
+    {% endif %}
 </div>
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
@@ -52,6 +58,18 @@
         </div>
     </a>
     
+    <a href="{{ url_for('users_add_funds') }}" style="text-decoration: none; color: inherit;">
+        <div class="card" style="cursor: pointer; transition: transform 0.2s;">
+            <h3 style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                💵 Add Funds
+            </h3>
+            <p style="color: var(--text-muted);">Top up your account balance</p>
+            <div style="margin-top: 1rem;">
+                <span class="btn btn-sm btn-secondary">Add Funds →</span>
+            </div>
+        </div>
+    </a>
+    
     {% if session.is_admin %}
     <a href="{{ url_for('users_list') }}" style="text-decoration: none; color: inherit;">
         <div class="card" style="cursor: pointer; transition: transform 0.2s;">
@@ -74,6 +92,7 @@
             <a href="{{ url_for('items_create') }}" class="btn btn-secondary">+ Create Item</a>
         {% endif %}
         <a href="{{ url_for('payments_debit') }}" class="btn btn-primary">Make Payment</a>
+        <a href="{{ url_for('users_add_funds') }}" class="btn btn-secondary">Add Funds</a>
         <a href="{{ url_for('transactions_list') }}" class="btn btn-outline">View Transactions</a>
     </div>
 </div>
