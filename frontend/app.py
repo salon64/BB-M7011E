@@ -236,19 +236,31 @@ def users_create():
     """Create new user (public route)"""
     if request.method == 'POST':
         data = {
-            'name': request.form.get('name'),
-            'username': request.form.get('username'),
-            'password': request.form.get('password'),
+            'card_id': int(request.form.get('card_id', 0)),
+            'first_name': request.form.get('first_name'),
+            'last_name': request.form.get('last_name'),
             'email': request.form.get('email'),
+            'password': request.form.get('password'),
         }
         
+        logger.info(f"Attempting to create user with data: {data}")
         response = make_request('POST', f"{USERS_SERVICE_URL}/users", json=data)
         
         if response and response.status_code in [200, 201]:
+            logger.info(f"User created successfully: {response.json()}")
             flash('User created successfully! You can now log in.', 'success')
             return redirect(url_for('login'))
         else:
-            error_msg = response.json().get('detail', 'Failed to create user.') if response else 'Failed to create user.'
+            if response:
+                logger.error(f"User creation failed: Status={response.status_code}, Body={response.text}")
+                try:
+                    error_data = response.json()
+                    error_msg = error_data.get('detail', 'Failed to create user.')
+                except:
+                    error_msg = 'Failed to create user. Server error.'
+            else:
+                logger.error("User creation failed: No response from service")
+                error_msg = 'Failed to create user. Service unavailable.'
             flash(error_msg, 'danger')
     
     return render_template('users/create.html')

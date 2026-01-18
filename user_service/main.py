@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.routes import router
 from contextlib import asynccontextmanager
@@ -30,6 +31,15 @@ app = FastAPI(
     version="1.0.0",
     description="Handles all user-related operations for Bättre Bosh",
     lifespan=lifespan,
+)
+
+# Add CORS middleware to allow cross-origin requests
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins - can be restricted in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(router)

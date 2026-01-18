@@ -174,7 +174,7 @@ docker run -d \
   -p 5000:5000 \
   -e FLASK_SECRET_KEY="your-secret-key" \
   -e ITEMS_SERVICE_URL="http://items-service:8001" \
-  -e USERS_SERVICE_URL="http://users-service:8002" \
+  -e USERS_SERVICE_URL="http://user-service:8004" \
   -e TRANSACTIONS_SERVICE_URL="http://transactions-service:8003" \
   -e KC_URL="https://keycloak.ronstad.se" \
   -e KC_REALM="BB" \
@@ -235,7 +235,7 @@ metadata:
   name: frontend-config
 data:
   ITEMS_SERVICE_URL: "http://items-service:8001"
-  USERS_SERVICE_URL: "http://users-service:8002"
+  USERS_SERVICE_URL: "http://user-service:8004"
   TRANSACTIONS_SERVICE_URL: "http://transactions-service:8003"
   KC_URL: "https://keycloak.ronstad.se"
   KC_REALM: "BB"
@@ -371,7 +371,7 @@ kubectl scale deployment/barcode-buddy-frontend --replicas=3 -n barcode-buddy
 | `FLASK_SECRET_KEY` | Secret key for Flask sessions | None | Yes |
 | `DEBUG` | Enable debug mode | `false` | No |
 | `ITEMS_SERVICE_URL` | Items microservice URL | `http://localhost:8001` | Yes |
-| `USERS_SERVICE_URL` | Users microservice URL | `http://localhost:8002` | Yes |
+| `USERS_SERVICE_URL` | Users microservice URL | `http://localhost:8004` | Yes |
 | `TRANSACTIONS_SERVICE_URL` | Transactions microservice URL | `http://localhost:8003` | Yes |
 | `KC_URL` | Keycloak server URL | `https://keycloak.ronstad.se` | Yes |
 | `KC_REALM` | Keycloak realm name | `BB` | Yes |
