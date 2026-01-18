@@ -27,22 +27,9 @@ spec:
             secretKeyRef:
               name: frontend-secrets
               key: flask-secret-key
-        - name: DEBUG
-          value: "false"
-        - name: ITEMS_SERVICE_URL
-          value: "http://items-service:8001"
-        - name: USERS_SERVICE_URL
-          value: "http://users-service:8002"
-        - name: TRANSACTIONS_SERVICE_URL
-          value: "http://transactions-service:8003"
-        - name: KC_URL
-          value: "https://keycloak.ronstad.se"
-        - name: KC_REALM
-          value: "BB"
-        - name: KC_CLIENT_ID
-          value: "public-user"
-        - name: INSECURE
-          value: "false"
+        envFrom:
+        - configMapRef:
+            name: frontend-config
         resources:
           requests:
             memory: "256Mi"
