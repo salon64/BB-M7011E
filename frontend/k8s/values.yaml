@@ -18,7 +18,7 @@ frontend:
 services:
   itemsServiceUrl: "http://item-service-dev:8004"
   usersServiceUrl: "http://user-service-dev:8004"
-  transactionsServiceUrl: "http://transactions-service-dev:8003"
+  transactionsServiceUrl: "http://payment-service-dev:8002"
 
 # Keycloak Configuration
 keycloak:

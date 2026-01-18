@@ -129,9 +129,9 @@ FLASK_SECRET_KEY=your-secret-key-here  # Generate with: python -c "import secret
 DEBUG=true  # Set to false in production
 
 # Microservice URLs (adjust ports as needed)
-ITEMS_SERVICE_URL=http://localhost:8001
-USERS_SERVICE_URL=http://localhost:8002
-TRANSACTIONS_SERVICE_URL=http://localhost:8003
+ITEMS_SERVICE_URL=http://localhost:8004
+USERS_SERVICE_URL=http://localhost:8004
+TRANSACTIONS_SERVICE_URL=http://localhost:8002
 
 # Keycloak Configuration
 KC_URL=https://keycloak.ronstad.se
@@ -173,9 +173,9 @@ docker run -d \
   --name barcode-buddy-frontend \
   -p 5000:5000 \
   -e FLASK_SECRET_KEY="your-secret-key" \
-  -e ITEMS_SERVICE_URL="http://items-service:8001" \
+  -e ITEMS_SERVICE_URL="http://item-service:8004" \
   -e USERS_SERVICE_URL="http://user-service:8004" \
-  -e TRANSACTIONS_SERVICE_URL="http://transactions-service:8003" \
+  -e TRANSACTIONS_SERVICE_URL="http://payment-service:8002" \
   -e KC_URL="https://keycloak.ronstad.se" \
   -e KC_REALM="BB" \
   -e KC_CLIENT_ID="public-user" \
@@ -234,9 +234,9 @@ kind: ConfigMap
 metadata:
   name: frontend-config
 data:
-  ITEMS_SERVICE_URL: "http://items-service:8001"
-  USERS_SERVICE_URL: "http://user-service:8004"
-  TRANSACTIONS_SERVICE_URL: "http://transactions-service:8003"
+  ITEMS_SERVICE_URL: "http://item-service-dev:8004"
+  USERS_SERVICE_URL: "http://user-service-dev:8004"
+  TRANSACTIONS_SERVICE_URL: "http://payment-service-dev:8002"
   KC_URL: "https://keycloak.ronstad.se"
   KC_REALM: "BB"
   KC_CLIENT_ID: "public-user"
@@ -370,9 +370,9 @@ kubectl scale deployment/barcode-buddy-frontend --replicas=3 -n barcode-buddy
 |----------|-------------|---------|----------|
 | `FLASK_SECRET_KEY` | Secret key for Flask sessions | None | Yes |
 | `DEBUG` | Enable debug mode | `false` | No |
-| `ITEMS_SERVICE_URL` | Items microservice URL | `http://localhost:8001` | Yes |
+| `ITEMS_SERVICE_URL` | Items microservice URL | `http://localhost:8004` | Yes |
 | `USERS_SERVICE_URL` | Users microservice URL | `http://localhost:8004` | Yes |
-| `TRANSACTIONS_SERVICE_URL` | Transactions microservice URL | `http://localhost:8003` | Yes |
+| `TRANSACTIONS_SERVICE_URL` | Transactions microservice URL | `http://localhost:8002` | Yes |
 | `KC_URL` | Keycloak server URL | `https://keycloak.ronstad.se` | Yes |
 | `KC_REALM` | Keycloak realm name | `BB` | Yes |
 | `KC_CLIENT_ID` | Keycloak client ID | `public-user` | Yes |
