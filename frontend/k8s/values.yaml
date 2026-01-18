@@ -16,9 +16,9 @@ frontend:
 
 # Microservices URLs
 services:
-  itemsServiceUrl: "http://item-service:8001"
-  usersServiceUrl: "http://user-service:8004"
-  transactionsServiceUrl: "http://transactions-service:8003"
+  itemsServiceUrl: "http://item-service-dev:8001"
+  usersServiceUrl: "http://user-service-dev:8004"
+  transactionsServiceUrl: "http://transactions-service-dev:8003"
 
 # Keycloak Configuration
 keycloak:
