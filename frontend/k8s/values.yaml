@@ -16,7 +16,7 @@ frontend:
 
 # Microservices URLs
 services:
-  itemsServiceUrl: "http://item-service-dev:8001"
+  itemsServiceUrl: "http://item-service-dev:8004"
   usersServiceUrl: "http://user-service-dev:8004"
   transactionsServiceUrl: "http://transactions-service-dev:8003"
 

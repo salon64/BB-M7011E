@@ -137,11 +137,14 @@ def dashboard():
 @login_required
 def items_list():
     """List all items"""
-    response = make_request('POST', f"{ITEMS_SERVICE_URL}/items/list", json={})
+    response = make_request('POST', f"{ITEMS_SERVICE_URL}/items/list", json={"active_only": True})
     items = []
     
     if response and response.status_code == 200:
         items = response.json().get('items', [])
+    else:
+        if response:
+            logger.error(f"Items list failed: {response.status_code} - {response.text}")
     
     return render_template('items/list.html', items=items)
 
