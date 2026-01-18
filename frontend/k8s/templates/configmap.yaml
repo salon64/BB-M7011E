@@ -3,11 +3,11 @@ kind: ConfigMap
 metadata:
   name: frontend-config
 data:
-  ITEMS_SERVICE_URL: "http://items-service:8001"
-  USERS_SERVICE_URL: "http://user-service:8004"
-  TRANSACTIONS_SERVICE_URL: "http://transactions-service:8003"
-  KC_URL: "https://keycloak.ronstad.se"
-  KC_REALM: "BB"
-  KC_CLIENT_ID: "public-user"
-  DEBUG: "false"
-  INSECURE: "false"
+  ITEMS_SERVICE_URL: "{{ .Values.services.itemsServiceUrl }}"
+  USERS_SERVICE_URL: "{{ .Values.services.usersServiceUrl }}"
+  TRANSACTIONS_SERVICE_URL: "{{ .Values.services.transactionsServiceUrl }}"
+  KC_URL: "{{ .Values.keycloak.url }}"
+  KC_REALM: "{{ .Values.keycloak.realm }}"
+  KC_CLIENT_ID: "{{ .Values.keycloak.clientId }}"
+  DEBUG: "{{ .Values.debug }}"
+  INSECURE: "{{ .Values.insecure }}"

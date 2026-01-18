@@ -14,6 +14,22 @@ frontend:
       cpu: "200m"
   domain: www.ronstad.se
 
+# Microservices URLs
+services:
+  itemsServiceUrl: "http://item-service:8001"
+  usersServiceUrl: "http://user-service:8004"
+  transactionsServiceUrl: "http://transactions-service:8003"
+
+# Keycloak Configuration
+keycloak:
+  url: "https://keycloak.ronstad.se"
+  realm: "BB"
+  clientId: "public-user"
+
+# Application Configuration
+debug: "false"
+insecure: "false"
+
 # Ingress Configuration
 ingress:
   enabled: true
