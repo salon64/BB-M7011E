@@ -23,7 +23,7 @@ ingress:
 service:
   type: ClusterIP
   port: 80
-  targetPort: 80
+  targetPort: 5000
 
 # Autoscaling Configuration
 autoscaling:
