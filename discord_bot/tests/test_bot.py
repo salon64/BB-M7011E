@@ -4,9 +4,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "app"))
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))  # Add repo root for common
 
-import pytest
 import os
-from unittest.mock import Mock, AsyncMock, patch
 
 
 class TestBotCommands:

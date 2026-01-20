@@ -4,7 +4,8 @@ WORKDIR /app
 
 # Copy and install common package first
 COPY common/ ./common/
-RUN pip install --no-cache-dir ./common
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir ./common
 
 
 # Install dependencies

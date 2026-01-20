@@ -544,16 +544,16 @@ def main() -> None:
         return
 
     logger.info("Starting Discord bot...")
-    
+
     # Set up signal handlers for graceful shutdown
     def signal_handler(signum, frame):
         logger.info(f"Received signal {signum}, initiating graceful shutdown...")
         asyncio.create_task(bot.close())
-    
+
     # Register signal handlers for SIGTERM (Kubernetes termination) and SIGINT (Ctrl+C)
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGINT, signal_handler)
-    
+
     try:
         bot.run(DISCORD_TOKEN)
     except KeyboardInterrupt:

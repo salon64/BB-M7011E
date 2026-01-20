@@ -95,6 +95,7 @@ async def test_on_command_error_missing_required_argument(monkeypatch):
     ctx = Ctx()
     # MissingRequiredArgument expects a 'param' - provide a simple namespace with name
     # create a safe subclass to avoid base class constructor side-effects
+
     class DummyMissing(commands.MissingRequiredArgument):
         def __init__(self):
             self.param = SimpleNamespace(name="item_id")
