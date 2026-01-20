@@ -6,14 +6,14 @@ import logging
 import discord
 import httpx
 import jwt
+import signal
+import asyncio
 from datetime import datetime
 from urllib.parse import urlencode
 from app.auth import get_user_card_id, get_discord_jwt, UserNotLinkedError
 from discord.ext import commands
 from dotenv import load_dotenv
 from typing import Optional
-from supabase import Client
-from common.database import get_supabase_client
 
 load_dotenv()
 
@@ -41,7 +41,6 @@ intents.members = True
 
 # Create bot instance
 bot: commands.Bot = commands.Bot(command_prefix=COMMAND_PREFIX, intents=intents)
-supabase: Optional[Client] = None
 
 
 @bot.event
@@ -49,12 +48,6 @@ async def on_ready() -> None:
     """Called when the bot is ready and connected to Discord."""
     logger.info(f"Bot is ready! Logged in as {bot.user.name} ({bot.user.id})")
     logger.info(f"Connected to {len(bot.guilds)} guild(s)")
-    global supabase
-    try:
-        supabase = get_supabase_client()
-        logger.info("Supabase client ready")
-    except Exception as e:
-        logger.error(f"Failed to initialize Supabase client: {e}")
 
     # Set bot status
     await bot.change_presence(
@@ -91,7 +84,7 @@ async def on_command_error(ctx: commands.Context, error: Exception) -> None:
         await ctx.send("❌ An error occurred while processing your command.")
 
 
-@bot.command(name="ping")
+@bot.command(name="ping", aliases=["p"])
 async def ping(ctx: commands.Context) -> None:
     """Check if the bot is responsive."""
     latency = round(bot.latency * 1000)
@@ -99,7 +92,7 @@ async def ping(ctx: commands.Context) -> None:
     await ctx.send(f"🏓 Pong! Latency: {latency}ms, user is {user}")
 
 
-@bot.command(name="balance")
+@bot.command(name="balance", aliases=["b"])
 async def balance(ctx: commands.Context) -> None:
     """Check your account balance."""
     discord_id = str(ctx.message.author.id)
@@ -141,7 +134,7 @@ async def balance(ctx: commands.Context) -> None:
             await ctx.send("❌ Could not connect to user service.")
 
 
-@bot.command(name="items")
+@bot.command(name="items", aliases=["i"])
 async def items(ctx: commands.Context) -> None:
     """List available items for purchase."""
     discord_id = str(ctx.message.author.id)
@@ -188,7 +181,7 @@ async def items(ctx: commands.Context) -> None:
             await ctx.send("❌ Could not connect to item service.")
 
 
-@bot.command(name="buy")
+@bot.command(name="buy", aliases=["purchase"])
 async def buy(ctx: commands.Context, item_id: Optional[str] = None) -> None:
     """Purchase an item by ID."""
     if item_id is None:
@@ -263,7 +256,7 @@ async def buy(ctx: commands.Context, item_id: Optional[str] = None) -> None:
             await ctx.send("❌ Could not connect to backend services.")
 
 
-@bot.command(name="transactions")
+@bot.command(name="transactions", aliases=["t"])
 async def transactions(
     ctx: commands.Context,
     user_id: Optional[str] = None,
@@ -348,7 +341,7 @@ async def transactions(
             await ctx.send("❌ Could not connect to payment service.")
 
 
-@bot.command(name="transaction")
+@bot.command(name="transaction", aliases=["td"])
 async def transaction(
     ctx: commands.Context, transaction_id: Optional[str] = None
 ) -> None:
@@ -418,7 +411,7 @@ async def transaction(
             await ctx.send("❌ Could not connect to payment service.")
 
 
-@bot.command(name="add_funds")
+@bot.command(name="add_funds", aliases=["deposit"])
 async def add_funds(ctx: commands.Context, amount: Optional[str] = None) -> None:
     """Add funds to your account. Requires an image attachment as proof of payment."""
     if amount is None:
@@ -509,7 +502,7 @@ async def add_funds(ctx: commands.Context, amount: Optional[str] = None) -> None
             await ctx.send("❌ Could not connect to user service.")
 
 
-@bot.command(name="auth_test")
+@bot.command(name="auth_test", aliases=["auth"])
 async def auth_test(ctx: commands.Context) -> None:
     """Test authentication - returns user's card_id and bot JWT"""
     discord_id = str(ctx.message.author.id)
@@ -551,7 +544,20 @@ def main() -> None:
         return
 
     logger.info("Starting Discord bot...")
-    bot.run(DISCORD_TOKEN)
+
+    # Set up signal handlers for graceful shutdown
+    def signal_handler(signum, frame):
+        logger.info(f"Received signal {signum}, initiating graceful shutdown...")
+        asyncio.create_task(bot.close())
+
+    # Register signal handlers for SIGTERM (Kubernetes termination) and SIGINT (Ctrl+C)
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+
+    try:
+        bot.run(DISCORD_TOKEN)
+    except KeyboardInterrupt:
+        logger.info("Bot interrupted, shutting down...")
 
 
 if __name__ == "__main__":

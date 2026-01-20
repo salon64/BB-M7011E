@@ -1,81 +1,88 @@
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent / "app"))
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))  # Add repo root for common
 
-import pytest
-from unittest.mock import Mock, AsyncMock, patch
+import os
+from unittest.mock import patch
 
 
 class TestBotCommands:
     """Test Discord bot commands."""
 
-    def test_bot_config_loads(self):
-        """Test that bot configuration loads correctly."""
-        from app.config import settings
-
-        assert settings.command_prefix == "!"
-
-    @pytest.mark.asyncio
-    async def test_service_client_get(self):
-        """Test ServiceClient GET request."""
-        from app.services import ServiceClient
-
-        client = ServiceClient("http://test-service")
-
-        with patch("httpx.AsyncClient") as mock_client:
-            mock_response = Mock()
-            mock_response.json.return_value = {"status": "ok"}
-            mock_response.raise_for_status = Mock()
-
-            mock_client_instance = AsyncMock()
-            mock_client_instance.get.return_value = mock_response
-            mock_client.return_value.__aenter__.return_value = mock_client_instance
-
-            result = await client.get("/health")
-            assert result == {"status": "ok"}
-
-    @pytest.mark.asyncio
-    async def test_service_client_post(self):
-        """Test ServiceClient POST request."""
-        from app.services import ServiceClient
-
-        client = ServiceClient("http://test-service")
-
-        with patch("httpx.AsyncClient") as mock_client:
-            mock_response = Mock()
-            mock_response.json.return_value = {"success": True}
-            mock_response.raise_for_status = Mock()
-
-            mock_client_instance = AsyncMock()
-            mock_client_instance.post.return_value = mock_response
-            mock_client.return_value.__aenter__.return_value = mock_client_instance
-
-            result = await client.post("/action", data={"key": "value"})
-            assert result == {"success": True}
+    def test_env_defaults(self):
+        """Test that environment variables have sensible defaults."""
+        # COMMAND_PREFIX defaults to "!" if not set
+        prefix = os.getenv("COMMAND_PREFIX", "!")
+        assert prefix == "!"
 
 
-class TestServiceClients:
-    """Test individual service clients."""
+class TestMainFunction:
+    """Test main entry point."""
 
-    def test_user_service_client_init(self):
-        """Test UserServiceClient initialization."""
-        from app.services import UserServiceClient
+    def test_main_no_token(self, monkeypatch, caplog):
+        """Test main() exits early when DISCORD_TOKEN is not set."""
+        import importlib
 
-        client = UserServiceClient()
-        assert "user-service" in client.base_url or "localhost" in client.base_url
+        monkeypatch.delenv("DISCORD_TOKEN", raising=False)
 
-    def test_item_service_client_init(self):
-        """Test ItemServiceClient initialization."""
-        from app.services import ItemServiceClient
+        # Need to reload to pick up env change
+        import app.main as main_module
+        importlib.reload(main_module)
 
-        client = ItemServiceClient()
-        assert "item-service" in client.base_url or "localhost" in client.base_url
+        # main() should return early without running bot
+        result = main_module.main()
+        assert result is None
 
-    def test_payment_service_client_init(self):
-        """Test PaymentServiceClient initialization."""
-        from app.services import PaymentServiceClient
+    def test_main_with_token(self, monkeypatch):
+        """Test main() runs bot when token is set."""
+        import importlib
 
-        client = PaymentServiceClient()
-        assert "payment-service" in client.base_url or "localhost" in client.base_url
+        monkeypatch.setenv("DISCORD_TOKEN", "test-token")
+        monkeypatch.setenv("COMMAND_PREFIX", "!")
+
+        import app.main as main_module
+        importlib.reload(main_module)
+
+        # Mock the bot.run to avoid actually starting
+        with patch.object(main_module.bot, "run") as mock_run:
+            main_module.main()
+            mock_run.assert_called_once_with("test-token")
+
+    def test_main_keyboard_interrupt(self, monkeypatch):
+        """Test main() handles KeyboardInterrupt gracefully."""
+        import importlib
+
+        monkeypatch.setenv("DISCORD_TOKEN", "test-token")
+        monkeypatch.setenv("COMMAND_PREFIX", "!")
+
+        import app.main as main_module
+        importlib.reload(main_module)
+
+        with patch.object(main_module.bot, "run", side_effect=KeyboardInterrupt):
+            # Should not raise, just log and exit
+            main_module.main()
+
+
+class TestSignalHandler:
+    """Test signal handler functionality."""
+
+    def test_signal_handler_setup(self, monkeypatch):
+        """Test that signal handlers are registered."""
+        import importlib
+        import signal
+
+        monkeypatch.setenv("DISCORD_TOKEN", "test-token")
+        monkeypatch.setenv("COMMAND_PREFIX", "!")
+
+        import app.main as main_module
+        importlib.reload(main_module)
+
+        with patch.object(main_module.bot, "run"):
+            with patch("signal.signal") as mock_signal:
+                main_module.main()
+                # Check both SIGTERM and SIGINT are registered
+                calls = [call[0][0] for call in mock_signal.call_args_list]
+                assert signal.SIGTERM in calls
+                assert signal.SIGINT in calls

@@ -7,6 +7,7 @@ from app.models import (
     user_set_status_response,
     user_set_status,
     fetch_user_info,
+    DiscordLookup,
 )
 from common.database import get_supabase
 from keycloak import KeycloakAdmin
@@ -256,6 +257,54 @@ async def fetch_user_info(
             raise HTTPException(status_code=500, detail=f"Database error: {e.message}")
     except Exception as e:
         logger.error("Unexpected error in fetch_user_info: %s", e, exc_info=True)
+        raise HTTPException(
+            status_code=500, detail=f"An unexpected error occurred: {str(e)}"
+        )
+
+
+@router.post("/user/discord_lookup")
+async def discord_lookup(
+    request: DiscordLookup,
+    supabase: Client = Depends(get_supabase),
+    user_data: dict = Depends(require_auth),
+):
+    """
+    Look up a user's card_id by their Discord ID.
+    Requires bb_admin role.
+    """
+    logger = logging.getLogger("routes")
+
+    # Require bb_admin role
+    if "bb_admin" not in user_data.get("realm_access", {}).get("roles", []):
+        logger.warning(
+            "Access denied: user attempted discord_lookup without bb_admin role"
+        )
+        raise HTTPException(
+            status_code=403, detail="BB Admin privileges required for Discord lookup"
+        )
+
+    try:
+        result = (
+            supabase.table("Users")
+            .select("card_id")
+            .eq("discord", request.discord_id)
+            .execute()
+        )
+
+        if not result.data:
+            logger.warning(f"No user found with discord_id: {request.discord_id}")
+            raise HTTPException(
+                status_code=404, detail="No user linked with this Discord ID"
+            )
+
+        return {
+            "card_id": result.data[0]["card_id"],
+            "discord_id": request.discord_id,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in discord_lookup: {e}", exc_info=True)
         raise HTTPException(
             status_code=500, detail=f"An unexpected error occurred: {str(e)}"
         )
