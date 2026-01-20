@@ -35,7 +35,7 @@ The service requires a `.env` file in the root directory with the following vari
 ```
 SUPABASE_URL="your_supabase_project_url"
 SUPABASE_KEY="your_supabase_service_role_key"
-PRODUCTS_SERVICE_URL="http://localhost:8001"
+PRODUCTS_SERVICE_URL="http://localhost:8004"
 ```
 
 ### Database setup
