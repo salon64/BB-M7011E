@@ -428,7 +428,8 @@ def transactions_view(transaction_id):
     
     transaction = {}
     if response and response.status_code == 200:
-        transaction = response.json()
+        data = response.json()
+        transaction = data.get('transaction', {})
     
     return render_template('transactions/view.html', transaction=transaction)
 
