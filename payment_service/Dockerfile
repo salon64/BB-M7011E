@@ -15,6 +15,9 @@ RUN pip install --no-cache-dir /app/common
 COPY payment_service/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Remove setuptools after build (contains vulnerable vendored jaraco.context)
+RUN pip uninstall -y setuptools
+
 # Create the production image
 FROM python:3.11-slim
 
