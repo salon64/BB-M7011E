@@ -334,7 +334,8 @@
                 {% if session.access_token %}
                     <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
                     <li><a href="{{ url_for('items_list') }}">Items</a></li>
-                    <li><a href="{{ url_for('transactions_list') }}">Transactions</a></li>
+                    <li><a href="{{ url_for('payments_debit') }}">Buy</a></li>
+                    <li><a href="{{ url_for('users_add_funds') }}">Add Funds</a></li>
                     {% if session.is_admin %}
                         <li><a href="{{ url_for('users_list') }}">Users</a></li>
                     {% endif %}

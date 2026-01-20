@@ -28,12 +28,71 @@ KC_CLIENT_ID = os.getenv('KC_CLIENT_ID', 'public-user')
 INSECURE = os.getenv('INSECURE', 'false').lower() == 'true'
 
 # Auth decorator
+def refresh_token():
+    """Refresh the access token using the refresh token"""
+    if 'refresh_token' not in session:
+        return False
+    
+    token_url = f"{KC_URL}/realms/{KC_REALM}/protocol/openid-connect/token"
+    data = {
+        "grant_type": "refresh_token",
+        "client_id": KC_CLIENT_ID,
+        "refresh_token": session['refresh_token'],
+    }
+    
+    try:
+        response = requests.post(token_url, data=data, verify=not INSECURE, timeout=15)
+        
+        if response.status_code == 200:
+            token_data = response.json()
+            session['access_token'] = token_data.get('access_token')
+            session['refresh_token'] = token_data.get('refresh_token')
+            
+            # Update session info from new token
+            try:
+                jwt_info = jwt.decode(token_data.get('access_token'), options={"verify_signature": False})
+                session['is_admin'] = 'bb_admin' in jwt_info.get('realm_access', {}).get('roles', [])
+                session['user_id'] = jwt_info.get('sub')
+                session['card_id'] = jwt_info.get('preferred_username')
+            except Exception as e:
+                logger.error(f"Failed to decode refreshed JWT: {e}")
+            
+            logger.info("Token refreshed successfully")
+            return True
+        else:
+            logger.warning(f"Token refresh failed with status {response.status_code}")
+            return False
+    except Exception as e:
+        logger.error(f"Token refresh error: {e}")
+        return False
+
+def is_token_expired():
+    """Check if the access token is expired or about to expire"""
+    if 'access_token' not in session:
+        return True
+    
+    try:
+        jwt_info = jwt.decode(session['access_token'], options={"verify_signature": False})
+        exp = jwt_info.get('exp', 0)
+        # Refresh if token expires in less than 60 seconds
+        return datetime.utcnow().timestamp() > (exp - 60)
+    except Exception:
+        return True
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'access_token' not in session:
             flash('Please log in to access this page.', 'warning')
             return redirect(url_for('login'))
+        
+        # Check if token is expired and try to refresh
+        if is_token_expired():
+            if not refresh_token():
+                session.clear()
+                flash('Your session has expired. Please log in again.', 'warning')
+                return redirect(url_for('login'))
+        
         return f(*args, **kwargs)
     return decorated_function
 
@@ -43,6 +102,14 @@ def admin_required(f):
         if 'access_token' not in session:
             flash('Please log in to access this page.', 'warning')
             return redirect(url_for('login'))
+        
+        # Check if token is expired and try to refresh
+        if is_token_expired():
+            if not refresh_token():
+                session.clear()
+                flash('Your session has expired. Please log in again.', 'warning')
+                return redirect(url_for('login'))
+        
         if not session.get('is_admin', False):
             flash('Admin privileges required.', 'danger')
             return redirect(url_for('index'))
@@ -51,8 +118,13 @@ def admin_required(f):
 
 # Helper function to make authenticated requests
 def make_request(method, url, **kwargs):
-    """Make authenticated request to microservices"""
+    """Make authenticated request to microservices with automatic token refresh"""
     headers = kwargs.pop('headers', {})
+    
+    # Check if token needs refresh before making request
+    if 'access_token' in session and is_token_expired():
+        refresh_token()
+    
     if 'access_token' in session:
         headers['Authorization'] = f"Bearer {session['access_token']}"
     
@@ -65,6 +137,20 @@ def make_request(method, url, **kwargs):
             timeout=15,
             **kwargs
         )
+        
+        # If we get a 401, try refreshing the token and retry once
+        if response.status_code == 401 and 'refresh_token' in session:
+            if refresh_token():
+                headers['Authorization'] = f"Bearer {session['access_token']}"
+                response = requests.request(
+                    method, 
+                    url, 
+                    headers=headers, 
+                    verify=not INSECURE, 
+                    timeout=15,
+                    **kwargs
+                )
+        
         return response
     except requests.exceptions.RequestException as e:
         logger.error(f"Request failed: {e}")
@@ -479,7 +565,19 @@ def payments_debit():
     if items_response and items_response.status_code == 200:
         items = items_response.json().get('items', [])
     
-    return render_template('payments/debit.html', items=items)
+    # Get prefilled item_id from query parameter if provided
+    prefilled_item_id = request.args.get('item_id', None)
+    
+    return render_template('payments/debit.html', items=items, prefilled_item_id=prefilled_item_id)
+
+@app.route('/buy')
+@login_required
+def buy():
+    """Shortcut route to buy page"""
+    item_id = request.args.get('item_id', None)
+    if item_id:
+        return redirect(url_for('payments_debit', item_id=item_id))
+    return redirect(url_for('payments_debit'))
 
 # Health check endpoint
 @app.route('/health')

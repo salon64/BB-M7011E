@@ -13,7 +13,7 @@
                 <select id="item_id" name="item_id" class="form-control" required>
                     <option value="">Choose an item...</option>
                     {% for item in items %}
-                        <option value="{{ item.id }}" data-price="{{ item.price }}">
+                        <option value="{{ item.id }}" data-price="{{ item.price }}" {% if prefilled_item_id and prefilled_item_id|string == item.id|string %}selected{% endif %}>
                             {{ item.name }} - {{ (item.price / 100)|round(2) }} kr
                         </option>
                     {% endfor %}
@@ -40,9 +40,9 @@
 
 {% block extra_js %}
 <script>
-    // Display selected item info
-    document.getElementById('item_id').addEventListener('change', function() {
-        const selectedOption = this.options[this.selectedIndex];
+    function updateSelectedItem() {
+        const selectElement = document.getElementById('item_id');
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
         const infoDiv = document.getElementById('selected_item_info');
         
         if (selectedOption.value) {
@@ -52,7 +52,13 @@
         } else {
             infoDiv.innerHTML = 'None selected';
         }
-    });
+    }
+    
+    // Update on page load
+    document.addEventListener('DOMContentLoaded', updateSelectedItem);
+    
+    // Update on change
+    document.getElementById('item_id').addEventListener('change', updateSelectedItem);
 </script>
 {% endblock %}
 {% endblock %}
