@@ -51,7 +51,11 @@ jobs:
           pip install --upgrade pip
           pip install ./common
           cd ${{ matrix.service }}
-          pip install -r requirements.txt
+          if [ -f "requirements.txt" ]; then
+            pip install -r requirements.txt
+          elif [ -f "app/requirements.txt" ]; then
+            pip install -r app/requirements.txt
+          fi
           pip install pytest pytest-cov
 
       - name: Run unit tests

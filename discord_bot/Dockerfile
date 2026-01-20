@@ -12,6 +12,10 @@ RUN pip install --upgrade pip setuptools wheel && \
 COPY discord_bot/app/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Remove setuptools after build (contains vulnerable vendored jaraco.context)
+# setuptools is only needed for building wheels, not at runtime
+RUN pip uninstall -y setuptools
+
 # Copy application
 COPY discord_bot/app/ ./app/
 
