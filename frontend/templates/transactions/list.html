@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Transactions - Bättre Bosch{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h1>Transaction History</h1>
+    <a href="{{ url_for('payments_debit') }}" class="btn btn-primary">+ New Payment</a>
+</div>
+
+<div class="card">
+    {% if transactions %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Transaction ID</th>
+                    <th>User ID</th>
+                    <th>Item ID</th>
+                    <th>Date & Time</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaction in transactions %}
+                <tr>
+                    <td>
+                        <code style="background: var(--bg); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">
+                            {{ transaction.id[:8] }}...
+                        </code>
+                    </td>
+                    <td>{{ transaction.user }}</td>
+                    <td>
+                        <code style="background: var(--bg); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">
+                            {{ transaction.item[:8] }}...
+                        </code>
+                    </td>
+                    <td style="color: var(--text-muted);">
+                        {{ transaction.created_at }}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('transactions_view', transaction_id=transaction.id) }}" class="btn btn-sm btn-outline">
+                            View Details
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+            <p style="font-size: 1.1rem;">No transactions found.</p>
+            <a href="{{ url_for('payments_debit') }}" class="btn btn-primary" style="margin-top: 1rem;">
+                Make First Payment
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

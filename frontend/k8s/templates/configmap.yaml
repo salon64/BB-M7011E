@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-config
+data:
+  ITEMS_SERVICE_URL: "{{ .Values.services.itemsServiceUrl }}"
+  USERS_SERVICE_URL: "{{ .Values.services.usersServiceUrl }}"
+  TRANSACTIONS_SERVICE_URL: "{{ .Values.services.transactionsServiceUrl }}"
+  KC_URL: "{{ .Values.keycloak.url }}"
+  KC_REALM: "{{ .Values.keycloak.realm }}"
+  KC_CLIENT_ID: "{{ .Values.keycloak.clientId }}"
+  DEBUG: "{{ .Values.debug }}"
+  INSECURE: "{{ .Values.insecure }}"

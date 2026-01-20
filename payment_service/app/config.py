@@ -9,11 +9,6 @@ class Settings:
         self.supabase_url = os.getenv("SUPABASE_URL", "https://test.supabase.co")
         self.supabase_key = os.getenv("SUPABASE_KEY", "test-key")
 
-        # Other services
-        self.products_service_url = os.getenv(
-            "PRODUCTS_SERVICE_URL", "http://localhost:8001"
-        )
-
         # Service settings
         self.service_name = "payments-service"
         self.host = "0.0.0.0"

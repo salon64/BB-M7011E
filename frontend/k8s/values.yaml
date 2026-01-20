@@ -1,0 +1,50 @@
+# Frontend Service Configuration
+
+frontend:
+  name: frontend
+  replicas: 1
+  image: olleronstad/bb_frontend
+  tag: latest
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "50m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+  domain: www.ronstad.se
+
+# Microservices URLs
+services:
+  itemsServiceUrl: "http://item-service-dev:8004"
+  usersServiceUrl: "http://user-service-dev:8004"
+  transactionsServiceUrl: "http://payment-service-dev:8002"
+
+# Keycloak Configuration
+keycloak:
+  url: "https://keycloak.ronstad.se"
+  realm: "BB"
+  clientId: "public-user"
+
+# Application Configuration
+debug: "false"
+insecure: "false"
+
+# Ingress Configuration
+ingress:
+  enabled: true
+  certIssuer: "letsencrypt-prod"
+
+# Service Configuration
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 5000
+
+# Autoscaling Configuration
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPU: 70
+  targetMemory: 80

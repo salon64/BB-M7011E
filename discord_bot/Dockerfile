@@ -18,4 +18,4 @@ RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
 # Run application
-CMD ["python", "main.py"]
+CMD ["python", "-m", "app.main"]

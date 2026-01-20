@@ -37,8 +37,6 @@ spec:
             secretKeyRef:
               name: supabase-secret
               key: SUPABASE_KEY
-        - name: PRODUCTS_SERVICE_URL
-          value: "http://products-service:8001"
         - name: KEYCLOAK_URL
           value: '{{ .Values.app.keycloakUrl | default "http://keycloak:8080" }}'
         - name: KEYCLOAK_REALM

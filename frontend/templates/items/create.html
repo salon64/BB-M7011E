@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Create Item - Bättre Bosch{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto;">
+    <h1 style="margin-bottom: 2rem;">Create New Item</h1>
+    
+    <div class="card">
+        <form method="POST" action="{{ url_for('items_create') }}">
+            <div class="form-group">
+                <label class="form-label" for="name">Item Name *</label>
+                <input type="text" id="name" name="name" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="price">Price (in öre/cents) *</label>
+                <input type="number" id="price" name="price" class="form-control" required min="0" step="1">
+                <small style="color: var(--text-muted); display: block; margin-top: 0.25rem;">
+                    Example: 1000 = 10.00 kr
+                </small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="barcode_id">Barcode ID</label>
+                <input type="number" id="barcode_id" name="barcode_id" class="form-control">
+                <small style="color: var(--text-muted); display: block; margin-top: 0.25rem;">
+                    Optional: Leave empty if no barcode
+                </small>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button type="submit" class="btn btn-primary" style="flex: 1;">Create Item</button>
+                <a href="{{ url_for('items_list') }}" class="btn btn-outline">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

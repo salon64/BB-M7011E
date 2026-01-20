@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Add Funds - Bättre Bosch{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto;">
+    <h1 style="margin-bottom: 2rem;">Add Funds to Your Account</h1>
+    
+    <div class="card">
+        <form method="POST" action="{{ url_for('users_add_funds') }}" enctype="multipart/form-data">
+            <div class="form-group">
+                <label class="form-label" for="amount">Amount to Add (kr) *</label>
+                <input type="number" id="amount" name="amount" class="form-control" required min="1" step="1" placeholder="Enter amount in kronor">
+                <small style="color: var(--text-muted); display: block; margin-top: 0.25rem;">
+                    Enter the amount you want to add to your balance
+                </small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="receipt">Payment Receipt/Proof *</label>
+                <div style="border: 2px dashed var(--border); border-radius: 8px; padding: 2rem; text-align: center; margin-bottom: 0.5rem; cursor: pointer; transition: all 0.2s;" id="dropzone">
+                    <input type="file" id="receipt" name="receipt" accept="image/*" required style="display: none;">
+                    <div id="upload-placeholder">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 1rem; display: block; color: var(--accent);">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                        <p style="color: var(--text-muted); margin-bottom: 0.5rem;">Click to upload or drag and drop</p>
+                        <p style="color: var(--text-muted); font-size: 0.875rem;">PNG, JPG, GIF up to 10MB</p>
+                    </div>
+                    <div id="preview-container" style="display: none;">
+                        <img id="image-preview" src="" alt="Receipt preview" style="max-width: 100%; max-height: 200px; border-radius: 6px;">
+                        <p id="file-name" style="color: var(--text-muted); margin-top: 0.5rem;"></p>
+                    </div>
+                </div>
+                <small style="color: var(--text-muted); display: block; margin-top: 0.25rem;">
+                    Upload a photho of your deposit as proof of payment
+                </small>
+            </div>
+            
+            <div style="padding: 1rem; background: rgba(6, 182, 212, 0.1); border-radius: 6px; margin: 1.5rem 0; border-left: 3px solid var(--accent);">
+                <strong style="color: var(--accent);">Instructions:</strong>
+                <div style="color: var(--text-muted); margin-top: 0.5rem;">
+                    <p>Deposit cash at the XP-EL fika fridge and upload a photo of the transaction.</p>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button type="submit" class="btn btn-primary" style="flex: 1;">Submit Request</button>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('receipt');
+    const uploadPlaceholder = document.getElementById('upload-placeholder');
+    const previewContainer = document.getElementById('preview-container');
+    const imagePreview = document.getElementById('image-preview');
+    const fileName = document.getElementById('file-name');
+    
+    // Click to upload
+    dropzone.addEventListener('click', () => fileInput.click());
+    
+    // Drag and drop
+    dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.style.borderColor = 'var(--accent)';
+        dropzone.style.background = 'rgba(6, 182, 212, 0.1)';
+    });
+    
+    dropzone.addEventListener('dragleave', () => {
+        dropzone.style.borderColor = 'var(--border)';
+        dropzone.style.background = 'transparent';
+    });
+    
+    dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.style.borderColor = 'var(--border)';
+        dropzone.style.background = 'transparent';
+        
+        if (e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            showPreview(e.dataTransfer.files[0]);
+        }
+    });
+    
+    // File input change
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length) {
+            showPreview(e.target.files[0]);
+        }
+    });
+    
+    function showPreview(file) {
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imagePreview.src = e.target.result;
+                fileName.textContent = file.name;
+                uploadPlaceholder.style.display = 'none';
+                previewContainer.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+</script>
+{% endblock %}
+{% endblock %}
